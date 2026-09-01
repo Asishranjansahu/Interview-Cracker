@@ -16,6 +16,20 @@ export const TOPIC_KNOWLEDGE_BASE = [
       "Polymorphism supports Compile-time (Method Overloading) and Runtime (Method Overriding with dynamic method dispatch).",
       "Adheres to SOLID principles: Single Responsibility, Open/Closed, Liskov Substitution, Interface Segregation, Dependency Inversion."
     ],
+    codeSnippet: `// Polymorphism & Interface Abstraction in Java
+public interface PaymentGateway {
+    PaymentResult process(PaymentRequest request);
+}
+
+@Service
+public class StripeGateway implements PaymentGateway {
+    @Override
+    public PaymentResult process(PaymentRequest req) {
+        // Stripe integration logic
+        return new PaymentResult(true, "STRIPE_TX_123");
+    }
+}`,
+    complexity: "Time: O(1) invocation | Space: O(1) heap allocation",
     tradeoff: "Deep inheritance hierarchies increase coupling; favor composition over inheritance where possible.",
     spoken: "In Java, OOP provides the foundation for scalable systems. I apply Encapsulation to protect business state, Abstraction and Interfaces to decouple service contracts, and Runtime Polymorphism so services can swap implementations seamlessly without breaking dependent callers.",
     category: "Java Core"
@@ -32,9 +46,127 @@ export const TOPIC_KNOWLEDGE_BASE = [
       "ConcurrentHashMap provides thread safety using CAS operations and synchronized blocks on individual bucket heads (Lock Striping) without locking the whole map.",
       "Important rule: Always override equals() and hashCode() together to maintain the contract for key lookups."
     ],
+    codeSnippet: `// Key custom object must override equals and hashCode
+public class EmployeeKey {
+    private final int id;
+    private final String dept;
+
+    public EmployeeKey(int id, String dept) {
+        this.id = id;
+        this.dept = dept;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof EmployeeKey that)) return false;
+        return id == that.id && Objects.equals(dept, that.dept);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, dept);
+    }
+}`,
+    complexity: "Lookup Time: O(1) average, O(log N) tree collision | Space: O(N)",
     tradeoff: "ConcurrentHashMap incurs slightly more memory per node than HashMap, but enables high-throughput concurrent reads and writes.",
     spoken: "HashMap computes the bucket index using key's hashcode. When hash collisions happen, items are stored in a linked bucket. In Java 8, if a bucket grows past 8 nodes, it treeifies into a Red-Black Tree for O(log n) search. For thread-safe concurrent access, I use ConcurrentHashMap to avoid locking entire table partitions.",
     category: "Java Core"
+  },
+
+  // 2.1 CODING: TWO SUM / HASHMAP ALGORITHM
+  {
+    patterns: [/two sum/i, /find pairs with target sum/i, /array target sum/i],
+    headline: "Two Sum is solved optimally in O(N) time and O(N) space using a single-pass HashMap to store complementary values.",
+    bullets: [
+      "Brute force requires O(N²) nested loops comparing every pair.",
+      "Optimal single-pass HashMap checks if (target - currentNum) exists in map before inserting currentNum with its index.",
+      "Handles duplicate numbers and negative integers cleanly.",
+      "Returns zero-indexed array of pair indices immediately upon match."
+    ],
+    codeSnippet: `public int[] twoSum(int[] nums, int target) {
+    Map<Integer, Integer> map = new HashMap<>();
+    for (int i = 0; i < nums.length; i++) {
+        int complement = target - nums[i];
+        if (map.containsKey(complement)) {
+            return new int[]{ map.get(complement), i };
+        }
+        map.put(nums[i], i);
+    }
+    throw new IllegalArgumentException("No two sum solution");
+}`,
+    complexity: "Time Complexity: O(N) single pass | Space Complexity: O(N) hash map storage",
+    tradeoff: "Trades O(N) auxiliary space for O(N) linear time compared to O(N²) space-free brute force.",
+    spoken: "I solve Two Sum using a single-pass HashMap. For each number in the array, I compute the target complement. If the complement is already in the map, I immediately return both indices; otherwise, I record the current number and index into the map. This achieves O(N) linear time.",
+    category: "Coding & Algorithms"
+  },
+
+  // 2.2 CODING: REVERSE LINKED LIST
+  {
+    patterns: [/reverse linked list/i, /reverse a list/i, /linked list reversal/i],
+    headline: "Reverse a Singly Linked List iteratively in O(N) time and O(1) space using three pointers (prev, current, next).",
+    bullets: [
+      "Iterative 3-pointer approach eliminates recursion stack overhead (prevents StackOverflowError on long lists).",
+      "Loop condition: while curr != null, preserve curr.next, invert pointer curr.next = prev, advance prev and curr.",
+      "Returns prev pointer as the new head of the reversed list.",
+      "Edge cases: Empty list (head == null) or single node returns head immediately."
+    ],
+    codeSnippet: `public ListNode reverseList(ListNode head) {
+    ListNode prev = null;
+    ListNode curr = head;
+    while (curr != null) {
+        ListNode nextTemp = curr.next; // save next
+        curr.next = prev;              // reverse pointer
+        prev = curr;                   // advance prev
+        curr = nextTemp;               // advance curr
+    }
+    return prev;
+}`,
+    complexity: "Time Complexity: O(N) single traversal | Space Complexity: O(1) auxiliary space",
+    tradeoff: "Iterative approach is preferred over recursive to avoid O(N) call stack memory overhead.",
+    spoken: "To reverse a singly linked list in-place, I use three pointers: previous, current, and next temporary. In a single loop, I cache the next node, redirect current.next to previous, and advance pointers forward until current reaches null, returning previous as the new head.",
+    category: "Coding & Algorithms"
+  },
+
+  // 2.3 CODING: LRU CACHE DESIGN
+  {
+    patterns: [/lru cache/i, /least recently used/i, /design lru/i],
+    headline: "An LRU Cache is implemented in O(1) get and put time using a HashMap paired with a Doubly Linked List with dummy head and tail nodes.",
+    bullets: [
+      "HashMap provides O(1) node lookup by key.",
+      "Doubly Linked List enables O(1) node removal and addition to the head (most recently used position).",
+      "On capacity overflow, evict the node immediately before the dummy tail (least recently used) and delete its key from the HashMap.",
+      "Dummy head and tail sentinels eliminate edge cases when inserting into empty list or removing head/tail."
+    ],
+    codeSnippet: `public class LRUCache {
+    class Node { int key, val; Node prev, next; }
+    private final int capacity;
+    private final Map<Integer, Node> map = new HashMap<>();
+    private final Node head = new Node(), tail = new Node();
+
+    public LRUCache(int capacity) {
+        this.capacity = capacity;
+        head.next = tail; tail.prev = head;
+    }
+    public int get(int key) {
+        if (!map.containsKey(key)) return -1;
+        Node node = map.get(key);
+        remove(node); insertHead(node);
+        return node.val;
+    }
+    public void put(int key, int val) {
+        if (map.containsKey(key)) remove(map.get(key));
+        if (map.size() == capacity) { map.remove(tail.prev.key); remove(tail.prev); }
+        Node node = new Node(); node.key = key; node.val = val;
+        insertHead(node); map.put(key, node);
+    }
+    private void remove(Node n) { n.prev.next = n.next; n.next.prev = n.prev; }
+    private void insertHead(Node n) { n.next = head.next; n.prev = head; head.next.prev = n; head.next = n; }
+}`,
+    complexity: "Time: O(1) for both get() and put() | Space: O(Capacity)",
+    tradeoff: "Java LinkedHashMap can achieve this natively with accessOrder=true, but custom doubly-linked implementation demonstrates complete algorithmic mastery.",
+    spoken: "I implement LRU Cache using a HashMap combined with a Doubly Linked List. The map gives us O(1) key lookups, and the doubly linked list allows O(1) updates to move accessed items to the front and evict the tail item when maximum capacity is exceeded.",
+    category: "Coding & Algorithms"
   },
 
   // 3. ARRAYLIST VS LINKEDLIST / LISTS / SETS

@@ -27,10 +27,18 @@ import {
   RefreshCw,
   Plus,
   ArrowRight,
+  Code2,
+  Terminal,
+  Eye,
+  EyeOff,
+  Zap,
+  Maximize2,
 } from 'lucide-react';
 import { AudioVisualizer } from './components/AudioVisualizer';
 import { useSpeechEngine, ACCENT_OPTIONS } from './hooks/useSpeechEngine';
 import { findMatchingAnswer } from './utils/interviewKnowledgeBase';
+import { StealthTeleprompter } from './components/StealthTeleprompter';
+import { CodingProblemSolver } from './components/CodingProblemSolver';
 
 const STORAGE_KEY = 'greenroom_sessions_v2';
 const PROFILE_KEY = 'greenroom_profile_v2';
@@ -277,6 +285,19 @@ export default function App() {
   const [isSpeakingTTS, setIsSpeakingTTS] = useState(false);
   const [copiedKey, setCopiedKey] = useState('');
   const [historySearch, setHistorySearch] = useState('');
+  const [showStealthTeleprompter, setShowStealthTeleprompter] = useState(true);
+
+  // Keyboard shortcut listener for Parakeet Stealth Teleprompter (Shift + P)
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.shiftKey && (e.key === 'P' || e.key === 'p')) || e.key === 'F8') {
+        e.preventDefault();
+        setShowStealthTeleprompter((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Audio Loopback test state
   const [isLoopbackRecording, setIsLoopbackRecording] = useState(false);
@@ -285,8 +306,20 @@ export default function App() {
   const loopbackChunks = useRef([]);
 
   const activeSession = useMemo(
-    () => sessions.find((session) => session.id === activeSessionId) || null,
-    [sessions, activeSessionId]
+    () => sessions.find((session) => session.id === activeSessionId) || sessions[0] || {
+      id: 'sess_live_default',
+      company: profile.company || 'Cognizant',
+      role: profile.role || 'Java Developer Fresher',
+      interviewType: profile.interviewType || 'technical',
+      mode: 'live',
+      resumeText: profile.resumeText,
+      jobDescription: profile.jobDescription,
+      companyCulture: profile.companyCulture,
+      status: 'Active',
+      createdAt: new Date().toISOString(),
+      qaPairs: [],
+    },
+    [sessions, activeSessionId, profile]
   );
 
   // Persistence
@@ -616,6 +649,13 @@ export default function App() {
   };
 
   // Text to speech narration of generated answers
+  const stopTTS = () => {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+    setIsSpeakingTTS(false);
+  };
+
   const speakText = (text) => {
     if (!('speechSynthesis' in window)) {
       setErrorText('Text-to-speech is not supported in this browser.');
@@ -623,8 +663,7 @@ export default function App() {
     }
 
     if (isSpeakingTTS) {
-      window.speechSynthesis.cancel();
-      setIsSpeakingTTS(false);
+      stopTTS();
       return;
     }
 
@@ -780,6 +819,23 @@ export default function App() {
               </select>
             </div>
 
+            {/* Parakeet Stealth Teleprompter Toggle */}
+            <button
+              id="header-teleprompter-toggle"
+              type="button"
+              onClick={() => setShowStealthTeleprompter((v) => !v)}
+              className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition border ${
+                showStealthTeleprompter
+                  ? 'border-emerald-400 bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20'
+                  : 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20'
+              }`}
+              title="Toggle Floating Teleprompter HUD (Shortcut: Shift + P)"
+            >
+              <Zap className="h-3.5 w-3.5" />
+              <span>{showStealthTeleprompter ? 'HUD Active' : '⚡ Stealth HUD'}</span>
+              <span className="hidden lg:inline text-[10px] opacity-75 font-mono">(Shift+P)</span>
+            </button>
+
             {/* Quick Mic status indicator */}
             <button
               id="header-mic-toggle"
@@ -845,6 +901,20 @@ export default function App() {
                 >
                   <Radio className={`h-4 w-4 ${nav === 'sessions' ? 'text-emerald-400' : 'text-slate-400'}`} />
                   <span>Call Sessions</span>
+                </button>
+
+                <button
+                  id="nav-item-coding"
+                  type="button"
+                  onClick={() => setNav('coding')}
+                  className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition ${
+                    nav === 'coding'
+                      ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 font-semibold'
+                      : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'
+                  }`}
+                >
+                  <Terminal className={`h-4 w-4 ${nav === 'coding' ? 'text-emerald-400' : 'text-slate-400'}`} />
+                  <span>LeetCode & Code Solver</span>
                 </button>
 
                 <button
@@ -1427,7 +1497,18 @@ export default function App() {
                               <Sparkles className="h-4 w-4" />
                               AI Co-Pilot Answer Blueprint
                             </div>
-                            <span className="text-[11px] text-slate-400">Glanceable STAR Talking Points</span>
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => setShowStealthTeleprompter(true)}
+                                className="flex items-center gap-1 rounded-lg bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-1 text-[11px] font-bold text-emerald-300 hover:bg-emerald-500/20 transition"
+                                title="Open stealth teleprompter overlay (Shift+P)"
+                              >
+                                <Zap className="h-3 w-3" />
+                                <span>Parakeet HUD</span>
+                              </button>
+                              <span className="hidden sm:inline text-[11px] text-slate-400">Glanceable STAR Talking Points</span>
+                            </div>
                           </div>
 
                           {cue ? (
@@ -1435,8 +1516,13 @@ export default function App() {
                               {/* Headline Answer */}
                               <div className="rounded-xl border border-emerald-500/30 bg-emerald-950/30 p-4 relative group">
                                 <div className="flex items-center justify-between mb-1">
-                                  <div className="text-[11px] font-bold uppercase tracking-wider text-emerald-400">
-                                    ⚡ Headline Response (First 5 Seconds):
+                                  <div className="text-[11px] font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-2">
+                                    <span>⚡ Headline Response (First 5 Seconds):</span>
+                                    {cue.complexity && (
+                                      <span className="rounded bg-emerald-500/20 px-1.5 py-0.2 text-[10px] text-emerald-300 font-mono">
+                                        {cue.complexity}
+                                      </span>
+                                    )}
                                   </div>
                                   <button
                                     type="button"
@@ -1451,6 +1537,36 @@ export default function App() {
                                   {cue.headline_answer}
                                 </div>
                               </div>
+
+                              {/* Code Snippet Card (Parakeet Coding Rounds) */}
+                              {cue.codeSnippet && (
+                                <div className="rounded-xl border border-white/10 bg-[#0B0F17] overflow-hidden">
+                                  <div className="flex items-center justify-between bg-slate-900/80 px-3.5 py-2 border-b border-white/10 text-xs">
+                                    <div className="flex items-center gap-2 font-mono text-emerald-400">
+                                      <Code2 className="h-3.5 w-3.5" />
+                                      <span>Optimized Solution</span>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                      {cue.complexity && (
+                                        <span className="text-[10px] font-mono text-slate-400">
+                                          {cue.complexity}
+                                        </span>
+                                      )}
+                                      <button
+                                        type="button"
+                                        onClick={() => copyToClipboard(cue.codeSnippet, 'codesnip')}
+                                        className="text-[11px] text-emerald-400 hover:underline flex items-center gap-1"
+                                      >
+                                        {copiedKey === 'codesnip' ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                                        <span>Copy Code</span>
+                                      </button>
+                                    </div>
+                                  </div>
+                                  <pre className="p-3 text-xs font-mono text-emerald-300/90 overflow-x-auto leading-relaxed bg-[#080B10]">
+                                    <code>{cue.codeSnippet}</code>
+                                  </pre>
+                                </div>
+                              )}
 
                               {/* Bullet Points */}
                               {cue.bullets && cue.bullets.length > 0 && (
@@ -1655,6 +1771,38 @@ export default function App() {
                   </div>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* PARAKEET LEETCODE & CODE SOLVER VIEW */}
+          {nav === 'coding' && (
+            <div className="space-y-6 max-w-5xl">
+              <div>
+                <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2.5">
+                  <Terminal className="h-6 w-6 text-emerald-400" />
+                  <span>LeetCode & Live Coding Co-Pilot</span>
+                </h1>
+                <p className="text-sm text-slate-400">
+                  Parakeet AI coding round assistant: solve live LeetCode/HackerRank algorithmic challenges, analyze Big-O time & space complexity, and push optimal code directly to your stealth teleprompter.
+                </p>
+              </div>
+
+              <CodingProblemSolver
+                onSendToTeleprompter={(solution) => {
+                  setCue({
+                    headline_answer: solution.title,
+                    bullets: solution.keyPoints || [],
+                    codeSnippet: solution.code,
+                    complexity: solution.complexity,
+                    full_answer: solution.code,
+                    tradeoff: `Optimal algorithm trade-off: ${solution.complexity}`,
+                    category: 'Coding & Algorithms',
+                  });
+                  setCurrentQuestion(solution.title);
+                  setShowStealthTeleprompter(true);
+                  setSuccessToast('Code solution sent to Parakeet Stealth Teleprompter HUD!');
+                }}
+              />
             </div>
           )}
 
@@ -1990,6 +2138,29 @@ export default function App() {
           )}
         </main>
       </div>
+
+      {/* Stealth Teleprompter Floating HUD Overlay (Parakeet AI Engine) */}
+      <StealthTeleprompter
+        isOpen={showStealthTeleprompter}
+        onClose={() => setShowStealthTeleprompter(false)}
+        onOpen={() => setShowStealthTeleprompter(true)}
+        cue={cue}
+        currentQuestion={currentQuestion}
+        micEnabled={micEnabled}
+        onToggleMic={toggleMic}
+        isListening={isListening}
+        interimText={interimText}
+        onSpeakAnswer={speakText}
+        isSpeaking={isSpeakingTTS}
+        onStopSpeech={stopTTS}
+        onRegenerate={() => {
+          if (currentQuestion) {
+            handleDetectedQuestion(currentQuestion);
+          }
+        }}
+        company={profile.company}
+        role={profile.role}
+      />
 
       {/* Floating Success Toast */}
       {successToast && (
