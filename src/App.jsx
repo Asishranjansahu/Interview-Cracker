@@ -504,12 +504,16 @@ function App() {
             <a href="#" className="hover:text-slate-900">Features</a>
             <a href="#" className="hover:text-slate-900">Reviews</a>
             <a href="#" className="hover:text-slate-900">Privacy</a>
-            <a href="#" className="hover:text-slate-900">Pricing</a>
           </nav>
 
-          <button className="rounded-xl border border-slate-300 bg-white/70 px-4 py-2 text-sm font-semibold text-slate-800">
-            Dashboard
-          </button>
+          <div className="flex items-center gap-2">
+            <span className="rounded-full border border-brand-500/40 bg-brand-500/10 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.08em] text-brand-700">
+              Free AI Helper
+            </span>
+            <button className="rounded-xl border border-slate-300 bg-white/70 px-4 py-2 text-sm font-semibold text-slate-800">
+              Dashboard
+            </button>
+          </div>
         </header>
 
         <div className="grid min-h-[calc(100vh-110px)] grid-cols-1 md:grid-cols-[280px_minmax(0,1fr)]">
@@ -550,14 +554,17 @@ function App() {
               </button>
             </div>
 
-            <div className="mt-auto rounded-2xl border border-slate-200 bg-slate-100/90 p-4 shadow-soft">
-              <div className="mb-2 text-lg font-bold">Free Plan</div>
-              <p className="mb-4 text-sm leading-5 text-slate-600">
-                Start a 10 min free session or buy credits for full-length calls.
+            <div className="mt-auto rounded-2xl border border-brand-500/30 bg-brand-500/10 p-4 shadow-soft">
+              <div className="mb-2 flex items-center gap-2 text-lg font-bold text-brand-800">
+                <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-brand-500 text-[10px] text-slate-950">★</span>
+                Free AI Helper
+              </div>
+              <p className="mb-2 text-sm leading-5 text-slate-700">
+                Live answer cues, quick interview coaching, and transcript review included.
               </p>
-              <button type="button" className="w-full rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white">
-                Upgrade
-              </button>
+              <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-brand-800">
+                No card required
+              </div>
             </div>
 
             <div className="mt-4 space-y-2 text-sm text-slate-700">
@@ -610,7 +617,10 @@ function App() {
                   <div className="glass-panel rounded-2xl p-5 md:p-6">
                     <div className="mb-5 flex items-center justify-between gap-4">
                       <div>
-                        <div className="text-xl font-bold">Session setup</div>
+                        <div className="flex items-center gap-2 text-xl font-bold">
+                          <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-brand-500/15 text-[11px] text-brand-700">✦</span>
+                          Session setup
+                        </div>
                         <div className="text-sm text-slate-400">Create a fresh interview profile</div>
                       </div>
                       <div className="flex gap-2">
@@ -862,7 +872,10 @@ function App() {
                 {!activeSession && (
                   <div className="mt-6 rounded-2xl border border-slate-200 bg-white/80 p-4 shadow-soft">
                     <div className="mb-4 flex items-center justify-between">
-                      <div className="text-xl font-bold">Recent sessions</div>
+                      <div className="flex items-center gap-2 text-xl font-bold">
+                        <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-brand-500/15 text-[11px] text-brand-700">✦</span>
+                        Recent sessions
+                      </div>
                       <span className="text-sm text-slate-500">{sessions.length} total</span>
                     </div>
 
