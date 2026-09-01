@@ -12,7 +12,6 @@ import {
   FileText,
   Send,
   Layers,
-  Monitor,
   Copy,
   Check,
   Globe,
@@ -22,17 +21,11 @@ import {
   Download,
   Search,
   BookOpen,
-  HelpCircle,
   VolumeX,
-  RefreshCw,
   Plus,
-  ArrowRight,
   Code2,
   Terminal,
-  Eye,
-  EyeOff,
   Zap,
-  Maximize2,
 } from 'lucide-react';
 import { AudioVisualizer } from './components/AudioVisualizer';
 import { useSpeechEngine, ACCENT_OPTIONS } from './hooks/useSpeechEngine';
@@ -47,7 +40,7 @@ const SETTINGS_KEY = 'greenroom_audio_settings_v2';
 const RESUME_PRESETS = [
   {
     id: 'java-fresher',
-    name: 'Java Developer Fresher (Cognizant / IT Services)',
+    name: 'Java Developer Fresher (IT Services / Enterprise)',
     company: 'Cognizant',
     role: 'Java Developer Fresher',
     interviewType: 'technical',
@@ -71,7 +64,7 @@ const RESUME_PRESETS = [
   },
   {
     id: 'behavioral-lead',
-    name: 'Behavioral & Leadership Fit',
+    name: 'Behavioral & Engineering Leadership',
     company: 'Global Tech Solutions',
     role: 'Associate Tech Lead',
     interviewType: 'behavioral',
@@ -138,7 +131,7 @@ const sampleCategories = [
     ],
   },
   {
-    title: 'HR & Motivation',
+    title: 'HR & Culture Fit',
     type: 'general',
     questions: [
       'Tell me about yourself and your background in software engineering.',
@@ -222,27 +215,27 @@ function generateSmartAnswer({ mode, session, question, candidateAnswer }) {
   const weaknesses = [];
 
   if (length >= 25) {
-    strengths.push('Good detail provided with clear technical terminology.');
-    strengths.push('Addressed the question directly with logical flow.');
+    strengths.push('Good technical detail with clear structure.');
+    strengths.push('Addressed the prompt directly with logical flow.');
   } else {
-    strengths.push('Direct initial response without excessive filler words.');
-    weaknesses.push('Answer is too brief. Expand with concrete details and metrics (STAR method).');
+    strengths.push('Concise initial response.');
+    weaknesses.push('Expand with concrete architectural examples and metrics (STAR method).');
   }
 
   if (/java|spring|sql|api|cache|thread|test|database|docker|rest/i.test(candidateAnswer || '')) {
     strengths.push('Included relevant domain keywords matching the role requirements.');
   } else {
-    weaknesses.push('Incorporate more specific technical tools, libraries, or architectural terms.');
+    weaknesses.push('Incorporate specific technical tools, libraries, or architectural terms.');
   }
 
   if (!/result|improved|reduced|shipped|outcome|percent|%/i.test(candidateAnswer || '')) {
-    weaknesses.push('Quantify the final result (e.g. "reduced latency by 20%", "shipped 2 days ahead of schedule").');
+    weaknesses.push('Quantify the final outcome (e.g. "reduced latency by 20%", "shipped ahead of schedule").');
   }
 
   const rewritten =
     candidateAnswer && candidateAnswer.length > 15
-      ? `In my previous project, I addressed this directly: ${candidateAnswer.trim().replace(/\.$/, '')}. This ensured smooth reliability, verified test coverage with JUnit, and allowed our team to deliver on time.`
-      : `In my previous experience with Java and Spring Boot, I approached this systematically: first diagnosing the core requirement, implementing a decoupled service layer, and verifying with integration tests to ensure 99.9% uptime.`;
+      ? `In my previous project, I addressed this directly: ${candidateAnswer.trim().replace(/\.$/, '')}. This ensured high reliability, automated test coverage with JUnit, and on-time delivery.`
+      : `In my experience with Java and Spring Boot, I approached this systematically: first isolating requirements, implementing a decoupled service layer, and verifying with integration tests.`;
 
   return {
     score,
@@ -254,7 +247,7 @@ function generateSmartAnswer({ mode, session, question, candidateAnswer }) {
 }
 
 export default function App() {
-  const [nav, setNav] = useState('sessions'); // 'sessions' | 'resumes' | 'documents' | 'diagnostics' | 'presets'
+  const [nav, setNav] = useState('sessions'); // 'sessions' | 'coding' | 'presets' | 'resumes' | 'documents' | 'diagnostics'
   const [profile, setProfile] = useState(loadProfile);
   const [audioSettings, setAudioSettings] = useState(loadAudioSettings);
   const [sessions, setSessions] = useState(loadStoredSessions);
@@ -263,7 +256,6 @@ export default function App() {
     return init[0]?.id || null;
   });
   const [createMode, setCreateMode] = useState('live'); // 'live' | 'practice'
-  const [audioSource, setAudioSource] = useState('mic'); // 'mic' | 'system'
   const [showSetup, setShowSetup] = useState(false);
   const [currentQuestion, setCurrentQuestion] = useState(() => sampleCategories[0].questions[0]);
   const [manualQuestion, setManualQuestion] = useState('');
@@ -285,9 +277,15 @@ export default function App() {
   const [isSpeakingTTS, setIsSpeakingTTS] = useState(false);
   const [copiedKey, setCopiedKey] = useState('');
   const [historySearch, setHistorySearch] = useState('');
-  const [showStealthTeleprompter, setShowStealthTeleprompter] = useState(true);
+  const [showStealthTeleprompter, setShowStealthTeleprompter] = useState(false);
 
-  // Keyboard shortcut listener for Parakeet Stealth Teleprompter (Shift + P)
+  // Audio Loopback test state
+  const [isLoopbackRecording, setIsLoopbackRecording] = useState(false);
+  const [loopbackAudioUrl, setLoopbackAudioUrl] = useState(null);
+  const mediaRecorderRef = useRef(null);
+  const loopbackChunks = useRef([]);
+
+  // Keyboard shortcut listener for Stealth Teleprompter (Shift + P)
   useEffect(() => {
     const handleKeyDown = (e) => {
       if ((e.shiftKey && (e.key === 'P' || e.key === 'p')) || e.key === 'F8') {
@@ -299,27 +297,9 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Audio Loopback test state
-  const [isLoopbackRecording, setIsLoopbackRecording] = useState(false);
-  const [loopbackAudioUrl, setLoopbackAudioUrl] = useState(null);
-  const mediaRecorderRef = useRef(null);
-  const loopbackChunks = useRef([]);
-
   const activeSession = useMemo(
-    () => sessions.find((session) => session.id === activeSessionId) || sessions[0] || {
-      id: 'sess_live_default',
-      company: profile.company || 'Cognizant',
-      role: profile.role || 'Java Developer Fresher',
-      interviewType: profile.interviewType || 'technical',
-      mode: 'live',
-      resumeText: profile.resumeText,
-      jobDescription: profile.jobDescription,
-      companyCulture: profile.companyCulture,
-      status: 'Active',
-      createdAt: new Date().toISOString(),
-      qaPairs: [],
-    },
-    [sessions, activeSessionId, profile]
+    () => sessions.find((session) => session.id === activeSessionId) || sessions[0] || null,
+    [sessions, activeSessionId]
   );
 
   // Persistence
@@ -422,20 +402,18 @@ export default function App() {
 
   // Speech engine hook
   const {
-    isListening,
     interimText,
     accumulatedText,
     recentTranscripts,
     audioStream,
     volumeLevel,
     permissionStatus,
-    engineError,
     speechRecognitionSupported,
     clearTranscriptBuffer,
     requestPermission,
   } = useSpeechEngine({
     isEnabled: micEnabled,
-    captureSource: audioSource,
+    captureSource: 'mic',
     language: audioSettings.language,
     micGain: audioSettings.micGain,
     silenceDelay: audioSettings.silenceDelay,
@@ -545,11 +523,7 @@ export default function App() {
     setPracticeEvaluation(null);
     setCandidateSpokenAnswer('');
     setLiveEditSpeech('');
-    setCurrentQuestion(
-      mode === 'live'
-        ? sampleCategories[0].questions[0]
-        : sampleCategories[0].questions[0]
-    );
+    setCurrentQuestion(sampleCategories[0].questions[0]);
     setErrorText('');
     setNav('sessions');
 
@@ -784,19 +758,19 @@ export default function App() {
   }, [sessions, historySearch]);
 
   return (
-    <div id="interview-cracker-app" className="min-h-screen bg-[#0C1017] text-slate-100 flex flex-col selection:bg-emerald-500 selection:text-slate-950 font-sans">
-      {/* Top Header */}
-      <header id="main-header" className="border-b border-white/10 bg-[#131924]/95 px-4 py-3 backdrop-blur-md sticky top-0 z-30 shadow-md">
-        <div className="mx-auto flex max-w-[1600px] items-center justify-between">
+    <div id="interview-cracker-app" className="min-h-screen bg-[#090d16] text-slate-100 flex flex-col font-sans selection:bg-emerald-500/30 selection:text-emerald-200">
+      {/* Sleek Top Header */}
+      <header id="main-header" className="border-b border-slate-800/80 bg-[#0c1220]/90 px-4 py-2.5 backdrop-blur-md sticky top-0 z-30">
+        <div className="mx-auto flex max-w-[1500px] items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 shadow-md shadow-emerald-500/20 text-slate-950">
-              <Sparkles className="h-5 w-5 font-bold" />
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500 text-slate-950 font-bold">
+              <Sparkles className="h-4 w-4" />
             </div>
             <div>
-              <div className="text-lg sm:text-xl font-bold tracking-tight text-white flex items-center gap-2">
+              <div className="text-base font-bold tracking-tight text-slate-100 flex items-center gap-2">
                 <span>Interview Cracker</span>
-                <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-400 border border-emerald-500/20">
-                  AI Co-Pilot
+                <span className="rounded bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-400 border border-emerald-500/20">
+                  Co-Pilot
                 </span>
               </div>
             </div>
@@ -804,7 +778,7 @@ export default function App() {
 
           <div className="flex items-center gap-2 sm:gap-3">
             {/* Dialect selector */}
-            <div className="hidden md:flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-slate-300">
+            <div className="hidden sm:flex items-center gap-1.5 rounded-lg border border-slate-800 bg-slate-900 px-2.5 py-1 text-xs text-slate-300">
               <Globe className="h-3.5 w-3.5 text-emerald-400" />
               <select
                 value={audioSettings.language}
@@ -819,42 +793,38 @@ export default function App() {
               </select>
             </div>
 
-            {/* Parakeet Stealth Teleprompter Toggle */}
+            {/* Stealth Teleprompter Toggle */}
             <button
               id="header-teleprompter-toggle"
               type="button"
               onClick={() => setShowStealthTeleprompter((v) => !v)}
-              className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition border ${
+              className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition border ${
                 showStealthTeleprompter
-                  ? 'border-emerald-400 bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20'
-                  : 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20'
+                  ? 'border-emerald-500 bg-emerald-500 text-slate-950 font-bold'
+                  : 'border-slate-800 bg-slate-900 text-slate-300 hover:text-white hover:border-slate-700'
               }`}
-              title="Toggle Floating Teleprompter HUD (Shortcut: Shift + P)"
+              title="Toggle Stealth HUD Overlay (Shift+P)"
             >
               <Zap className="h-3.5 w-3.5" />
-              <span>{showStealthTeleprompter ? 'HUD Active' : '⚡ Stealth HUD'}</span>
-              <span className="hidden lg:inline text-[10px] opacity-75 font-mono">(Shift+P)</span>
+              <span>{showStealthTeleprompter ? 'HUD Open' : 'Stealth HUD'}</span>
             </button>
 
-            {/* Quick Mic status indicator */}
+            {/* Quick Mic status */}
             <button
               id="header-mic-toggle"
               type="button"
               onClick={toggleMic}
-              className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition border ${
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition border ${
                 micEnabled
-                  ? 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300 shadow-sm'
-                  : 'border-white/10 bg-white/5 text-slate-400 hover:text-slate-200'
+                  ? 'border-emerald-500/40 bg-emerald-500/15 text-emerald-300'
+                  : 'border-slate-800 bg-slate-900 text-slate-400 hover:text-slate-200'
               }`}
             >
               {micEnabled ? (
                 <>
-                  <span className="relative flex h-2 w-2">
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
-                    <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
-                  </span>
-                  <Mic className="h-3.5 w-3.5" />
-                  <span>Mic Listening</span>
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <Mic className="h-3.5 w-3.5 text-emerald-400" />
+                  <span>Listening</span>
                 </>
               ) : (
                 <>
@@ -869,7 +839,7 @@ export default function App() {
                 id="btn-create-session-nav"
                 type="button"
                 onClick={() => setShowSetup(true)}
-                className="flex items-center gap-1.5 rounded-xl bg-emerald-500 px-3.5 py-1.5 text-xs font-bold text-slate-950 shadow-md shadow-emerald-500/20 hover:bg-emerald-400 transition"
+                className="flex items-center gap-1.5 rounded-lg bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-slate-950 hover:bg-emerald-400 transition"
               >
                 <Plus className="h-3.5 w-3.5" />
                 <span>New Session</span>
@@ -879,199 +849,105 @@ export default function App() {
         </div>
       </header>
 
-      {/* Main Workspace Layout */}
-      <div className="mx-auto flex w-full max-w-[1600px] flex-1 flex-col md:flex-row">
+      {/* Main Container */}
+      <div className="mx-auto flex w-full max-w-[1500px] flex-1 flex-col md:flex-row">
         {/* Left Navigation Sidebar */}
-        <aside id="sidebar" className="w-full md:w-64 shrink-0 border-r border-white/10 bg-[#10151E] p-4 flex flex-col justify-between">
-          <div className="space-y-5">
+        <aside id="sidebar" className="w-full md:w-60 shrink-0 border-r border-slate-800/80 bg-[#0c1220]/60 p-3.5 flex flex-col justify-between">
+          <div className="space-y-4">
             <div>
-              <div className="px-3 pb-2 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+              <div className="px-2 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">
                 Workspace
               </div>
               <nav className="space-y-1">
-                <button
-                  id="nav-item-sessions"
-                  type="button"
-                  onClick={() => setNav('sessions')}
-                  className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition ${
-                    nav === 'sessions'
-                      ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 font-semibold'
-                      : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'
-                  }`}
-                >
-                  <Radio className={`h-4 w-4 ${nav === 'sessions' ? 'text-emerald-400' : 'text-slate-400'}`} />
-                  <span>Call Sessions</span>
-                </button>
-
-                <button
-                  id="nav-item-coding"
-                  type="button"
-                  onClick={() => setNav('coding')}
-                  className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition ${
-                    nav === 'coding'
-                      ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 font-semibold'
-                      : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'
-                  }`}
-                >
-                  <Terminal className={`h-4 w-4 ${nav === 'coding' ? 'text-emerald-400' : 'text-slate-400'}`} />
-                  <span>LeetCode & Code Solver</span>
-                </button>
-
-                <button
-                  id="nav-item-presets"
-                  type="button"
-                  onClick={() => setNav('presets')}
-                  className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition ${
-                    nav === 'presets'
-                      ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 font-semibold'
-                      : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'
-                  }`}
-                >
-                  <BookOpen className={`h-4 w-4 ${nav === 'presets' ? 'text-emerald-400' : 'text-slate-400'}`} />
-                  <span>Role Presets & Questions</span>
-                </button>
-
-                <button
-                  id="nav-item-resumes"
-                  type="button"
-                  onClick={() => setNav('resumes')}
-                  className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition ${
-                    nav === 'resumes'
-                      ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 font-semibold'
-                      : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'
-                  }`}
-                >
-                  <FileText className={`h-4 w-4 ${nav === 'resumes' ? 'text-emerald-400' : 'text-slate-400'}`} />
-                  <span>CVs & Resumes</span>
-                </button>
-
-                <button
-                  id="nav-item-documents"
-                  type="button"
-                  onClick={() => setNav('documents')}
-                  className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition ${
-                    nav === 'documents'
-                      ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 font-semibold'
-                      : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'
-                  }`}
-                >
-                  <Layers className={`h-4 w-4 ${nav === 'documents' ? 'text-emerald-400' : 'text-slate-400'}`} />
-                  <span>Job Description</span>
-                </button>
-
-                <button
-                  id="nav-item-diagnostics"
-                  type="button"
-                  onClick={() => setNav('diagnostics')}
-                  className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition ${
-                    nav === 'diagnostics'
-                      ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 font-semibold'
-                      : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'
-                  }`}
-                >
-                  <Sliders className={`h-4 w-4 ${nav === 'diagnostics' ? 'text-emerald-400' : 'text-slate-400'}`} />
-                  <span>Voice & Mic Settings</span>
-                </button>
+                {[
+                  { id: 'sessions', label: 'Call Sessions', icon: Radio },
+                  { id: 'coding', label: 'Code & DSA Solver', icon: Terminal },
+                  { id: 'presets', label: 'Role Presets', icon: BookOpen },
+                  { id: 'resumes', label: 'CV & Experience', icon: FileText },
+                  { id: 'documents', label: 'Job Description', icon: Layers },
+                  { id: 'diagnostics', label: 'Mic & Audio Test', icon: Sliders },
+                ].map((tab) => {
+                  const Icon = tab.icon;
+                  const isActive = nav === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      id={`nav-item-${tab.id}`}
+                      type="button"
+                      onClick={() => setNav(tab.id)}
+                      className={`flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-xs font-medium transition ${
+                        isActive
+                          ? 'bg-emerald-500/10 text-emerald-400 font-semibold border border-emerald-500/20'
+                          : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
+                      }`}
+                    >
+                      <Icon className={`h-4 w-4 ${isActive ? 'text-emerald-400' : 'text-slate-400'}`} />
+                      <span>{tab.label}</span>
+                    </button>
+                  );
+                })}
               </nav>
             </div>
 
-            {/* Active Target Profile */}
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-3.5 space-y-1.5">
-              <div className="text-xs font-semibold text-slate-300 flex items-center justify-between">
-                <span>Active Profile</span>
-                <span className="text-[10px] rounded bg-emerald-500/20 px-1.5 py-0.5 text-emerald-300 uppercase font-bold">
+            {/* Active Target Profile Card */}
+            <div className="rounded-xl border border-slate-800/80 bg-slate-900/60 p-3 space-y-1">
+              <div className="text-[11px] text-slate-400 flex items-center justify-between font-medium">
+                <span>Active Target</span>
+                <span className="text-[10px] text-emerald-400 font-semibold uppercase">
                   {profile.interviewType}
                 </span>
               </div>
-              <div className="text-sm font-bold text-white truncate">{profile.company}</div>
-              <div className="text-xs text-slate-400 truncate">{profile.role}</div>
-            </div>
-
-            {/* Audio Clarity Booster */}
-            <div className="rounded-2xl border border-emerald-500/20 bg-emerald-950/20 p-3.5 space-y-2.5">
-              <div className="flex items-center justify-between text-xs font-semibold text-emerald-400">
-                <span className="flex items-center gap-1.5">
-                  <Volume2 className="h-4 w-4" />
-                  Voice Clarity
-                </span>
-                <span className="text-[10px] rounded bg-emerald-500/20 px-1.5 py-0.5 text-emerald-300">
-                  {audioSettings.micGain}x Boost
-                </span>
-              </div>
-
-              <div className="space-y-1">
-                <div className="flex justify-between text-[11px] text-slate-400">
-                  <span>Mic Gain</span>
-                  <span>{Math.round(audioSettings.micGain * 100)}%</span>
-                </div>
-                <input
-                  type="range"
-                  min="1.0"
-                  max="3.5"
-                  step="0.1"
-                  value={audioSettings.micGain}
-                  onChange={(e) =>
-                    setAudioSettings((s) => ({ ...s, micGain: parseFloat(e.target.value) }))
-                  }
-                  className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-400"
-                />
-              </div>
-
-              <div className="text-xs text-slate-300">
-                {micEnabled ? (
-                  <span className="text-emerald-400">Listening • Level: {volumeLevel}%</span>
-                ) : (
-                  <span className="text-slate-400">Idle (Toggle mic to listen)</span>
-                )}
-              </div>
+              <div className="text-xs font-bold text-slate-200 truncate">{profile.company}</div>
+              <div className="text-[11px] text-slate-400 truncate">{profile.role}</div>
             </div>
           </div>
 
-          <div className="mt-6 pt-4 border-t border-white/10">
-            <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-800 text-xs font-bold text-emerald-400 border border-emerald-500/30">
+          {/* User Profile Pill at Bottom */}
+          <div className="pt-3 border-t border-slate-800/80 mt-4">
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-800 text-[10px] font-bold text-emerald-400 border border-slate-700">
                 AS
               </div>
               <div className="min-w-0">
-                <div className="truncate text-xs font-bold text-white">Asish Ranjan Sahu</div>
-                <div className="truncate text-[11px] text-slate-400">Ready for Interview</div>
+                <div className="truncate text-xs font-semibold text-slate-200">Asish Ranjan Sahu</div>
+                <div className="truncate text-[10px] text-slate-500">Candidate</div>
               </div>
             </div>
           </div>
         </aside>
 
         {/* Main Content Area */}
-        <main id="main-panel" className="flex-1 p-4 md:p-6 bg-[#0B0F16] overflow-y-auto">
+        <main id="main-panel" className="flex-1 p-4 md:p-6 overflow-y-auto">
           {/* SESSIONS VIEW */}
           {nav === 'sessions' && (
-            <div className="space-y-6">
-              {/* Header bar */}
+            <div className="space-y-5 max-w-6xl">
+              {/* Header bar when idle */}
               {!activeSession && !showSetup && (
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
                   <div>
-                    <h1 className="text-2xl font-bold tracking-tight text-white">Call Sessions</h1>
-                    <p className="text-sm text-slate-400">
-                      Real-time interview voice listening, live STAR cue cards, and practice coaching.
+                    <h1 className="text-xl font-bold tracking-tight text-slate-100">Call Sessions</h1>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      Live speech transcription, instant STAR response blueprints, and practice coaching.
                     </p>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2.5">
                     <button
                       id="btn-start-practice"
                       type="button"
                       onClick={() => createSession('practice')}
-                      className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-semibold text-slate-200 hover:bg-white/10 transition"
+                      className="flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs font-semibold text-slate-200 hover:bg-slate-700 transition"
                     >
-                      <Play className="h-4 w-4 text-emerald-400" />
+                      <Play className="h-3.5 w-3.5 text-emerald-400" />
                       <span>Start Practice</span>
                     </button>
                     <button
                       id="btn-create-session-main"
                       type="button"
                       onClick={() => setShowSetup(true)}
-                      className="flex items-center gap-2 rounded-xl bg-emerald-500 px-4 py-2.5 text-sm font-bold text-slate-950 shadow-lg shadow-emerald-500/20 hover:bg-emerald-400 transition"
+                      className="flex items-center gap-1.5 rounded-lg bg-emerald-500 px-3.5 py-1.5 text-xs font-bold text-slate-950 hover:bg-emerald-400 transition"
                     >
-                      <Radio className="h-4 w-4" />
-                      <span>+ Create Live Session</span>
+                      <Radio className="h-3.5 w-3.5" />
+                      <span>Create Live Session</span>
                     </button>
                   </div>
                 </div>
@@ -1079,64 +955,64 @@ export default function App() {
 
               {/* Setup Modal / Card */}
               {showSetup && !activeSession && (
-                <div id="session-setup-card" className="rounded-2xl border border-white/10 bg-[#141A26] p-5 md:p-6 shadow-xl">
-                  <div className="mb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
+                <div id="session-setup-card" className="rounded-xl border border-slate-800 bg-slate-900/80 p-5 space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
                     <div>
-                      <div className="text-lg font-bold text-white flex items-center gap-2">
-                        <Sparkles className="h-5 w-5 text-emerald-400" />
+                      <div className="text-base font-bold text-slate-100 flex items-center gap-2">
+                        <Sparkles className="h-4 w-4 text-emerald-400" />
                         Configure Interview Session
                       </div>
-                      <p className="text-xs text-slate-400 mt-0.5">Customize candidate background, accent, and target company.</p>
+                      <p className="text-xs text-slate-400">Tailor candidate background and target company.</p>
                     </div>
-                    <div className="flex rounded-xl bg-slate-900 p-1 border border-white/10">
+                    <div className="flex rounded-lg bg-slate-950 p-1 border border-slate-800">
                       <button
                         type="button"
                         onClick={() => setCreateMode('live')}
-                        className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                        className={`rounded px-2.5 py-1 text-xs font-medium transition ${
                           createMode === 'live' ? 'bg-emerald-500 text-slate-950 font-bold' : 'text-slate-400 hover:text-slate-200'
                         }`}
                       >
-                        Live Mode (Real Interview)
+                        Live Mode
                       </button>
                       <button
                         type="button"
                         onClick={() => setCreateMode('practice')}
-                        className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                        className={`rounded px-2.5 py-1 text-xs font-medium transition ${
                           createMode === 'practice' ? 'bg-emerald-500 text-slate-950 font-bold' : 'text-slate-400 hover:text-slate-200'
                         }`}
                       >
-                        Practice Mode (Mock Q&A)
+                        Practice Mode
                       </button>
                     </div>
                   </div>
 
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <label className="space-y-1.5 text-xs text-slate-300">
+                  <div className="grid gap-3.5 sm:grid-cols-2">
+                    <label className="space-y-1 text-xs text-slate-300">
                       <span className="font-semibold text-slate-400">Target Company</span>
                       <input
                         value={profile.company}
                         onChange={(e) => setProfile((p) => ({ ...p, company: e.target.value }))}
-                        className="w-full rounded-xl border border-white/10 bg-[#0C1017] px-3 py-2.5 text-sm text-slate-100 outline-none focus:border-emerald-500/50"
+                        className="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-slate-100 outline-none focus:border-emerald-500"
                         placeholder="e.g. Cognizant, Google, Amazon"
                       />
                     </label>
 
-                    <label className="space-y-1.5 text-xs text-slate-300">
+                    <label className="space-y-1 text-xs text-slate-300">
                       <span className="font-semibold text-slate-400">Role / Position</span>
                       <input
                         value={profile.role}
                         onChange={(e) => setProfile((p) => ({ ...p, role: e.target.value }))}
-                        className="w-full rounded-xl border border-white/10 bg-[#0C1017] px-3 py-2.5 text-sm text-slate-100 outline-none focus:border-emerald-500/50"
+                        className="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-slate-100 outline-none focus:border-emerald-500"
                         placeholder="e.g. Java Developer Fresher"
                       />
                     </label>
 
-                    <label className="space-y-1.5 text-xs text-slate-300">
-                      <span className="font-semibold text-slate-400">Speech Accent / Dialect</span>
+                    <label className="space-y-1 text-xs text-slate-300">
+                      <span className="font-semibold text-slate-400">Accent / Dialect</span>
                       <select
                         value={audioSettings.language}
                         onChange={(e) => setAudioSettings((s) => ({ ...s, language: e.target.value }))}
-                        className="w-full rounded-xl border border-white/10 bg-[#0C1017] px-3 py-2.5 text-sm text-slate-100 outline-none focus:border-emerald-500/50"
+                        className="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-slate-100 outline-none focus:border-emerald-500"
                       >
                         {ACCENT_OPTIONS.map((opt) => (
                           <option key={opt.value} value={opt.value}>
@@ -1146,12 +1022,12 @@ export default function App() {
                       </select>
                     </label>
 
-                    <label className="space-y-1.5 text-xs text-slate-300">
+                    <label className="space-y-1 text-xs text-slate-300">
                       <span className="font-semibold text-slate-400">Interview Type</span>
                       <select
                         value={profile.interviewType}
                         onChange={(e) => setProfile((p) => ({ ...p, interviewType: e.target.value }))}
-                        className="w-full rounded-xl border border-white/10 bg-[#0C1017] px-3 py-2.5 text-sm text-slate-100 outline-none focus:border-emerald-500/50"
+                        className="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-slate-100 outline-none focus:border-emerald-500"
                       >
                         <option value="technical">Technical (Coding, Architecture, Core Concepts)</option>
                         <option value="behavioral">Behavioral (STAR Method Leadership)</option>
@@ -1159,31 +1035,30 @@ export default function App() {
                       </select>
                     </label>
 
-                    <label className="space-y-1.5 text-xs text-slate-300 md:col-span-2">
-                      <span className="font-semibold text-slate-400">Your Resume Summary / Key Skills</span>
+                    <label className="space-y-1 text-xs text-slate-300 sm:col-span-2">
+                      <span className="font-semibold text-slate-400">Resume Summary / Background Notes</span>
                       <textarea
                         value={profile.resumeText}
                         onChange={(e) => setProfile((p) => ({ ...p, resumeText: e.target.value }))}
                         rows={3}
-                        className="w-full rounded-xl border border-white/10 bg-[#0C1017] p-3 text-sm text-slate-100 outline-none focus:border-emerald-500/50 placeholder:text-slate-600"
+                        className="w-full rounded-lg border border-slate-800 bg-slate-950 p-2.5 text-xs text-slate-100 outline-none focus:border-emerald-500"
                       />
                     </label>
                   </div>
 
-                  <div className="mt-5 flex gap-3">
+                  <div className="pt-2 flex gap-2.5">
                     <button
                       id="btn-submit-session"
                       type="button"
                       onClick={() => createSession(createMode)}
-                      className="flex-1 rounded-xl bg-emerald-500 py-3 text-sm font-bold text-slate-950 shadow-md shadow-emerald-500/20 hover:bg-emerald-400 transition flex items-center justify-center gap-2"
+                      className="rounded-lg bg-emerald-500 px-4 py-2 text-xs font-semibold text-slate-950 hover:bg-emerald-400 transition"
                     >
-                      <Sparkles className="h-4 w-4" />
-                      <span>Start {createMode === 'live' ? 'Live Session' : 'Practice Session'}</span>
+                      Start {createMode === 'live' ? 'Live Session' : 'Practice Session'}
                     </button>
                     <button
                       type="button"
                       onClick={() => setShowSetup(false)}
-                      className="rounded-xl border border-white/10 bg-white/5 px-6 py-3 text-sm font-semibold text-slate-300 hover:bg-white/10"
+                      className="rounded-lg border border-slate-800 bg-slate-900 px-4 py-2 text-xs font-medium text-slate-300 hover:bg-slate-800"
                     >
                       Cancel
                     </button>
@@ -1193,22 +1068,22 @@ export default function App() {
 
               {/* ACTIVE SESSION RUNTIME VIEW */}
               {activeSession && (
-                <div id="active-session-container" className="space-y-5">
-                  {/* Top Status & Audio Control Banner */}
-                  <div className="rounded-2xl border border-white/10 bg-[#141A26] p-4 shadow-lg">
-                    <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-4 border-b border-white/10">
+                <div id="active-session-container" className="space-y-4">
+                  {/* Top Status & Audio Control Strip */}
+                  <div className="rounded-xl border border-slate-800 bg-slate-900/70 p-4 space-y-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
                       <div>
-                        <div className="flex items-center gap-2.5">
-                          <span className="h-3 w-3 rounded-full bg-emerald-400 animate-pulse"></span>
-                          <h2 className="text-xl font-bold text-white">{activeSession.company}</h2>
+                        <div className="flex items-center gap-2">
+                          <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+                          <h2 className="text-base font-bold text-slate-100">{activeSession.company}</h2>
                           <span className="text-xs text-slate-400">• {activeSession.role}</span>
-                          <span className="rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-emerald-400 border border-emerald-500/20">
+                          <span className="rounded bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase text-emerald-400 border border-emerald-500/20">
                             {activeSession.mode}
                           </span>
                         </div>
-                        <div className="text-xs text-slate-400 mt-1">
-                          Duration: <span className="font-mono text-emerald-400 font-semibold">{formatDuration(durationSecs)}</span> •{' '}
-                          {activeSession.qaPairs?.length || 0} Q&A generated
+                        <div className="text-xs text-slate-400 mt-0.5">
+                          Time: <span className="font-mono text-emerald-400 font-semibold">{formatDuration(durationSecs)}</span> •{' '}
+                          {activeSession.qaPairs?.length || 0} Q&As recorded
                         </div>
                       </div>
 
@@ -1216,7 +1091,7 @@ export default function App() {
                         <button
                           type="button"
                           onClick={() => exportSessionTranscript(activeSession)}
-                          className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-300 hover:bg-white/10 transition"
+                          className="flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs font-medium text-slate-300 hover:bg-slate-700 hover:text-white transition"
                         >
                           <Download className="h-3.5 w-3.5 text-emerald-400" />
                           <span>Export Markdown</span>
@@ -1225,7 +1100,7 @@ export default function App() {
                           id="btn-end-session"
                           type="button"
                           onClick={endSession}
-                          className="flex items-center gap-1.5 rounded-xl border border-rose-500/30 bg-rose-500/10 px-3.5 py-2 text-xs font-bold text-rose-300 hover:bg-rose-500/20 transition"
+                          className="flex items-center gap-1.5 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-1.5 text-xs font-semibold text-rose-300 hover:bg-rose-500/20 transition"
                         >
                           <Square className="h-3.5 w-3.5" />
                           <span>End Session</span>
@@ -1233,60 +1108,52 @@ export default function App() {
                       </div>
                     </div>
 
-                    {/* Live Audio & Controls Strip */}
-                    <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+                    {/* Audio Controls Bar */}
+                    <div className="flex flex-wrap items-center justify-between gap-3">
                       <div className="flex flex-wrap items-center gap-3">
-                        {/* Microphone Button */}
                         <button
                           id="btn-toggle-mic-session"
                           type="button"
                           onClick={toggleMic}
-                          className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition shadow-sm ${
+                          className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition ${
                             micEnabled
-                              ? 'bg-emerald-500 text-slate-950 shadow-emerald-500/20 hover:bg-emerald-400'
-                              : 'bg-slate-800 text-white border border-white/10 hover:bg-slate-700'
+                              ? 'bg-emerald-500 text-slate-950 hover:bg-emerald-400'
+                              : 'bg-slate-800 text-slate-200 border border-slate-700 hover:bg-slate-700'
                           }`}
                         >
-                          {micEnabled ? <Mic className="h-4 w-4 animate-bounce" /> : <MicOff className="h-4 w-4" />}
-                          <span>{micEnabled ? 'Mic Listening (Click to Mute)' : 'Enable Live Mic'}</span>
+                          {micEnabled ? <Mic className="h-3.5 w-3.5" /> : <MicOff className="h-3.5 w-3.5" />}
+                          <span>{micEnabled ? 'Mic Active (Click to Mute)' : 'Turn On Mic'}</span>
                         </button>
 
-                        {/* Visualizer */}
                         <AudioVisualizer audioStream={audioStream} isActive={micEnabled} volume={volumeLevel} />
                       </div>
 
-                      {/* TTS Voice Narration */}
                       {cue?.full_answer && (
                         <button
                           type="button"
                           onClick={() => speakText(cue.full_answer)}
-                          className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold transition border ${
+                          className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition border ${
                             isSpeakingTTS
-                              ? 'border-emerald-500 bg-emerald-500/20 text-emerald-300'
-                              : 'border-white/10 bg-white/5 text-slate-300 hover:bg-white/10'
+                              ? 'border-emerald-500 bg-emerald-500/15 text-emerald-300'
+                              : 'border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700'
                           }`}
                         >
                           {isSpeakingTTS ? <VolumeX className="h-3.5 w-3.5 text-rose-400" /> : <Volume2 className="h-3.5 w-3.5 text-emerald-400" />}
-                          <span>{isSpeakingTTS ? 'Stop Speaking' : 'Read Aloud'}</span>
+                          <span>{isSpeakingTTS ? 'Stop Audio' : 'Listen via Audio'}</span>
                         </button>
                       )}
                     </div>
 
-                    {/* Live Voice Transcript Strip */}
+                    {/* Live Voice Transcript Strip (Visible when Mic is On) */}
                     {micEnabled && (
-                      <div className="mt-3 rounded-xl border border-emerald-500/30 bg-emerald-950/30 p-3 space-y-2">
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="flex items-center gap-2 text-xs text-emerald-300 min-w-0">
-                            <span className="relative flex h-2 w-2 shrink-0">
-                              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
-                              <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
-                            </span>
-                            <span className="font-semibold uppercase tracking-wider text-[10px] text-emerald-400 shrink-0">
-                              Live Voice Transcript:
-                            </span>
+                      <div className="rounded-lg border border-slate-800 bg-slate-950 p-2.5 space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-1.5 text-xs text-emerald-400 font-medium">
+                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-ping" />
+                            <span className="text-[11px] uppercase font-semibold">Live Speech Recognition:</span>
                           </div>
 
-                          <div className="flex items-center gap-2 shrink-0">
+                          <div className="flex items-center gap-2">
                             {liveEditSpeech && (
                               <button
                                 type="button"
@@ -1294,7 +1161,7 @@ export default function App() {
                                   clearTranscriptBuffer();
                                   setLiveEditSpeech('');
                                 }}
-                                className="text-[11px] text-slate-400 hover:text-slate-200 px-2 py-0.5 rounded bg-white/5"
+                                className="text-[10px] text-slate-400 hover:text-slate-200"
                               >
                                 Clear
                               </button>
@@ -1303,9 +1170,9 @@ export default function App() {
                               type="button"
                               onClick={handleSendLiveSpeechNow}
                               disabled={!liveEditSpeech}
-                              className="rounded-lg bg-emerald-500 px-3 py-1 text-xs font-bold text-slate-950 hover:bg-emerald-400 disabled:opacity-50 transition"
+                              className="rounded bg-emerald-500 px-2 py-0.5 text-[11px] font-semibold text-slate-950 hover:bg-emerald-400 disabled:opacity-40 transition"
                             >
-                              ⚡ Answer This Now
+                              Generate Blueprint
                             </button>
                           </div>
                         </div>
@@ -1313,52 +1180,46 @@ export default function App() {
                         <input
                           value={liveEditSpeech}
                           onChange={(e) => setLiveEditSpeech(e.target.value)}
-                          placeholder="Listening for your voice or interviewer questions... (You can also edit this text live)"
-                          className="w-full rounded-lg border border-emerald-500/30 bg-slate-950/80 px-3 py-1.5 text-xs text-emerald-200 placeholder:text-slate-500 outline-none focus:border-emerald-400"
+                          placeholder="Transcribing your speech in real time..."
+                          className="w-full bg-transparent text-xs text-slate-200 placeholder:text-slate-600 outline-none"
                         />
                       </div>
                     )}
                   </div>
 
                   {/* Two-Column Grid: Question & Answer Workspace */}
-                  <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
-                    <div className="space-y-5">
+                  <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_300px]">
+                    <div className="space-y-4">
                       {/* Detected Question Box */}
-                      <div className="rounded-2xl border border-white/10 bg-[#141A26] p-5 shadow-lg">
-                        <div className="mb-2 flex items-center justify-between">
-                          <div className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                            <Radio className="h-3.5 w-3.5 text-emerald-400" />
-                            {activeSession.mode === 'live' ? 'Current Interviewer Question' : 'Target Practice Question'}
-                          </div>
+                      <div className="rounded-xl border border-slate-800 bg-slate-900/70 p-4 space-y-3">
+                        <div className="flex items-center justify-between text-xs text-slate-400">
+                          <span className="font-semibold uppercase tracking-wider text-[11px]">
+                            {activeSession.mode === 'live' ? 'Current Question' : 'Practice Question'}
+                          </span>
                           {isGenerating && (
-                            <span className="text-xs text-emerald-400 animate-pulse font-semibold">
-                              Generating answer cues...
-                            </span>
+                            <span className="text-emerald-400 text-xs animate-pulse">Generating answer...</span>
                           )}
                         </div>
 
-                        <div className="min-h-[56px] rounded-xl border border-white/10 bg-[#0C1017] p-4 text-base font-semibold text-white">
+                        <div className="rounded-lg border border-slate-800 bg-slate-950 p-3 text-sm font-semibold text-slate-100">
                           {currentQuestion || (
                             <span className="text-slate-500 font-normal italic">
-                              Speak into your microphone or pick a sample question below...
+                              Speak into your mic or pick a sample question below...
                             </span>
                           )}
                         </div>
 
-                        {/* Quick Question Selector Chips & 1-Click Simulation */}
-                        <div className="mt-4 border-t border-white/5 pt-3">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-400">
-                              ⚡ 1-Click Practice & Simulation Questions:
-                            </span>
-                            <span className="text-[10px] text-slate-400 font-mono">Instant AI generation</span>
-                          </div>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {/* 1-Click Simulation / Practice Chips */}
+                        <div className="pt-2 border-t border-slate-800">
+                          <span className="text-[11px] font-semibold text-slate-400 block mb-2">
+                            Quick Simulation Questions:
+                          </span>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
                             {[
                               { text: "Explain HashMap internals & Java 8 Red-Black Tree collision handling", tag: "Java Core" },
-                              { text: "How Java Garbage Collection works and how to prevent memory leaks", tag: "JVM & Memory" },
+                              { text: "How Java Garbage Collection works and how to prevent memory leaks", tag: "JVM Memory" },
                               { text: "Spring Boot Dependency Injection under the hood (@Autowired vs Constructor)", tag: "Spring Boot" },
-                              { text: "How to solve N+1 query problem in Spring Data JPA & Hibernate", tag: "Hibernate / ORM" },
+                              { text: "How to solve N+1 query problem in Spring Data JPA & Hibernate", tag: "Hibernate" },
                               { text: "How to optimize slow SQL queries using EXPLAIN & B-Tree indexing", tag: "Database" },
                               { text: "Tell me about a challenging production bug you solved under tight deadlines", tag: "STAR Behavioral" },
                               { text: "Tell me about yourself and your background in Java & Spring development", tag: "Elevator Pitch" },
@@ -1368,10 +1229,10 @@ export default function App() {
                                 key={idx}
                                 type="button"
                                 onClick={() => handleDetectedQuestion(item.text)}
-                                className="flex items-center justify-between gap-2 rounded-xl border border-white/10 bg-white/5 p-2.5 text-xs text-slate-200 hover:border-emerald-500/40 hover:bg-emerald-950/30 hover:text-emerald-300 transition text-left group"
+                                className="flex items-center justify-between gap-2 rounded-lg border border-slate-800 bg-slate-950/70 p-2 text-xs text-slate-300 hover:border-slate-700 hover:text-emerald-400 transition text-left"
                               >
                                 <span className="truncate font-medium">{item.text}</span>
-                                <span className="shrink-0 rounded-md bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-400 group-hover:bg-emerald-500/20">
+                                <span className="shrink-0 rounded bg-slate-900 px-1.5 py-0.5 text-[10px] text-slate-400 font-mono">
                                   {item.tag}
                                 </span>
                               </button>
@@ -1380,16 +1241,16 @@ export default function App() {
                         </div>
 
                         {/* Manual Input Fallback */}
-                        <form onSubmit={handleManualSubmit} className="mt-4 flex gap-2">
+                        <form onSubmit={handleManualSubmit} className="pt-2 flex gap-2">
                           <input
                             value={manualQuestion}
                             onChange={(e) => setManualQuestion(e.target.value)}
-                            placeholder="Type any interview question manually..."
-                            className="flex-1 rounded-xl border border-white/10 bg-[#0C1017] px-3.5 py-2 text-xs text-white outline-none focus:border-emerald-500/50"
+                            placeholder="Type any question manually..."
+                            className="flex-1 rounded-lg border border-slate-800 bg-slate-950 px-3 py-1.5 text-xs text-slate-200 outline-none focus:border-emerald-500"
                           />
                           <button
                             type="submit"
-                            className="rounded-xl bg-emerald-500 px-4 py-2 text-xs font-bold text-slate-950 hover:bg-emerald-400 transition"
+                            className="rounded-lg bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-slate-950 hover:bg-emerald-400 transition"
                           >
                             <Send className="h-3.5 w-3.5" />
                           </button>
@@ -1398,13 +1259,12 @@ export default function App() {
 
                       {/* PRACTICE MODE: Candidate Response Review */}
                       {activeSession.mode === 'practice' && (
-                        <div className="rounded-2xl border border-emerald-500/30 bg-[#141A26] p-5 shadow-lg">
-                          <div className="mb-3 flex items-center justify-between">
-                            <div className="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
-                              <Mic className="h-3.5 w-3.5" />
+                        <div className="rounded-xl border border-slate-800 bg-slate-900/70 p-4 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-semibold text-slate-300">
                               Your Spoken Response (Live Transcribed)
-                            </div>
-                            <span className="text-xs text-slate-400 font-mono">
+                            </span>
+                            <span className="text-xs text-slate-500 font-mono">
                               {candidateSpokenAnswer.split(/\s+/).filter(Boolean).length} words
                             </span>
                           </div>
@@ -1413,15 +1273,15 @@ export default function App() {
                             value={candidateSpokenAnswer}
                             onChange={(e) => setCandidateSpokenAnswer(e.target.value)}
                             placeholder="Speak into your mic to practice your answer, or type it here..."
-                            rows={4}
-                            className="w-full rounded-xl border border-white/10 bg-[#0C1017] p-3 text-sm text-slate-100 outline-none focus:border-emerald-500/50 placeholder:text-slate-600"
+                            rows={3}
+                            className="w-full rounded-lg border border-slate-800 bg-slate-950 p-2.5 text-xs text-slate-200 outline-none focus:border-emerald-500 placeholder:text-slate-600"
                           />
 
-                          <div className="mt-3 flex items-center justify-between">
+                          <div className="flex items-center justify-between">
                             <button
                               type="button"
                               onClick={() => setCandidateSpokenAnswer('')}
-                              className="text-xs text-slate-400 hover:text-slate-200"
+                              className="text-xs text-slate-500 hover:text-slate-300"
                             >
                               Clear Text
                             </button>
@@ -1429,28 +1289,26 @@ export default function App() {
                               type="button"
                               onClick={handleEvaluatePracticeAnswer}
                               disabled={isGenerating}
-                              className="rounded-xl bg-emerald-500 px-5 py-2 text-xs font-bold text-slate-950 shadow-md shadow-emerald-500/20 hover:bg-emerald-400 transition flex items-center gap-2"
+                              className="rounded-lg bg-emerald-500 px-4 py-1.5 text-xs font-semibold text-slate-950 hover:bg-emerald-400 transition flex items-center gap-1.5"
                             >
-                              <Sparkles className="h-4 w-4" />
-                              <span>Evaluate Spoken Answer (STAR Scoring)</span>
+                              <Sparkles className="h-3.5 w-3.5" />
+                              <span>Evaluate Spoken Answer</span>
                             </button>
                           </div>
 
                           {/* Practice Evaluation Result */}
                           {practiceEvaluation && (
-                            <div className="mt-4 rounded-xl border border-emerald-500/20 bg-emerald-950/20 p-4 space-y-3">
+                            <div className="mt-3 rounded-lg border border-slate-800 bg-slate-950 p-3 space-y-2 text-xs">
                               <div className="flex items-center justify-between">
-                                <span className="text-xs font-bold uppercase tracking-wider text-emerald-400">
-                                  Coaching Evaluation
-                                </span>
-                                <span className="rounded-full bg-emerald-500/20 px-2.5 py-0.5 text-xs font-bold text-emerald-300">
+                                <span className="font-semibold text-slate-300">STAR Scoring Feedback</span>
+                                <span className="rounded bg-emerald-500/10 px-2 py-0.5 text-xs font-semibold text-emerald-400 border border-emerald-500/20">
                                   Score: {practiceEvaluation.score}/5 ★
                                 </span>
                               </div>
 
                               <div>
-                                <div className="text-xs font-semibold text-emerald-300 mb-1">Strengths:</div>
-                                <ul className="list-disc list-inside text-xs text-slate-300 space-y-0.5">
+                                <div className="text-emerald-400 font-medium mb-0.5">Strengths:</div>
+                                <ul className="list-disc list-inside text-slate-300 space-y-0.5">
                                   {practiceEvaluation.strengths?.map((s, i) => (
                                     <li key={i}>{s}</li>
                                   ))}
@@ -1458,8 +1316,8 @@ export default function App() {
                               </div>
 
                               <div>
-                                <div className="text-xs font-semibold text-amber-300 mb-1">Improvement Suggestions:</div>
-                                <ul className="list-disc list-inside text-xs text-slate-300 space-y-0.5">
+                                <div className="text-amber-400 font-medium mb-0.5">Suggestions:</div>
+                                <ul className="list-disc list-inside text-slate-300 space-y-0.5">
                                   {practiceEvaluation.weaknesses?.map((w, i) => (
                                     <li key={i}>{w}</li>
                                   ))}
@@ -1467,21 +1325,21 @@ export default function App() {
                               </div>
 
                               {practiceEvaluation.rewritten_answer && (
-                                <div className="mt-2 pt-2 border-t border-white/10">
-                                  <div className="text-xs font-semibold text-slate-300 mb-1 flex items-center justify-between">
-                                    <span>Sharpened STAR Answer:</span>
+                                <div className="pt-2 border-t border-slate-800">
+                                  <div className="text-slate-400 font-medium mb-1 flex items-center justify-between">
+                                    <span>Refined STAR Response:</span>
                                     <button
                                       type="button"
                                       onClick={() => copyToClipboard(practiceEvaluation.rewritten_answer, 'eval')}
-                                      className="text-[11px] text-emerald-400 hover:underline flex items-center gap-1"
+                                      className="text-emerald-400 hover:underline flex items-center gap-1 text-[11px]"
                                     >
                                       {copiedKey === 'eval' ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
                                       <span>Copy</span>
                                     </button>
                                   </div>
-                                  <div className="text-xs italic text-slate-200 bg-[#0C1017] p-3 rounded-lg border border-white/5">
+                                  <p className="italic text-slate-200 bg-slate-900 p-2.5 rounded border border-slate-800 leading-relaxed">
                                     "{practiceEvaluation.rewritten_answer}"
-                                  </div>
+                                  </p>
                                 </div>
                               )}
                             </div>
@@ -1489,38 +1347,34 @@ export default function App() {
                         </div>
                       )}
 
-                      {/* LIVE MODE: AI Co-Pilot STAR Cue Card */}
+                      {/* LIVE MODE: AI Co-Pilot Answer Blueprint */}
                       {activeSession.mode === 'live' && (
-                        <div className="rounded-2xl border border-white/10 bg-[#141A26] p-5 shadow-lg space-y-4">
-                          <div className="flex items-center justify-between border-b border-white/10 pb-3">
-                            <div className="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-2">
-                              <Sparkles className="h-4 w-4" />
-                              AI Co-Pilot Answer Blueprint
+                        <div className="rounded-xl border border-slate-800 bg-slate-900/70 p-4 space-y-3.5">
+                          <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
+                            <div className="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+                              <Sparkles className="h-3.5 w-3.5" />
+                              <span>AI Answer Blueprint</span>
                             </div>
-                            <div className="flex items-center gap-2">
-                              <button
-                                type="button"
-                                onClick={() => setShowStealthTeleprompter(true)}
-                                className="flex items-center gap-1 rounded-lg bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-1 text-[11px] font-bold text-emerald-300 hover:bg-emerald-500/20 transition"
-                                title="Open stealth teleprompter overlay (Shift+P)"
-                              >
-                                <Zap className="h-3 w-3" />
-                                <span>Parakeet HUD</span>
-                              </button>
-                              <span className="hidden sm:inline text-[11px] text-slate-400">Glanceable STAR Talking Points</span>
-                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setShowStealthTeleprompter(true)}
+                              className="text-[11px] text-slate-400 hover:text-emerald-400 flex items-center gap-1 transition"
+                            >
+                              <Zap className="h-3 w-3" />
+                              <span>View in HUD (Shift+P)</span>
+                            </button>
                           </div>
 
                           {cue ? (
-                            <div className="space-y-4">
-                              {/* Headline Answer */}
-                              <div className="rounded-xl border border-emerald-500/30 bg-emerald-950/30 p-4 relative group">
+                            <div className="space-y-3">
+                              {/* 5-Second Headline Answer */}
+                              <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-3 relative group">
                                 <div className="flex items-center justify-between mb-1">
-                                  <div className="text-[11px] font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-2">
-                                    <span>⚡ Headline Response (First 5 Seconds):</span>
+                                  <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-2">
+                                    <span>5-Second Headline Response</span>
                                     {cue.complexity && (
-                                      <span className="rounded bg-emerald-500/20 px-1.5 py-0.2 text-[10px] text-emerald-300 font-mono">
-                                        {cue.complexity}
+                                      <span className="font-mono text-slate-400">
+                                        ({cue.complexity})
                                       </span>
                                     )}
                                   </div>
@@ -1533,20 +1387,20 @@ export default function App() {
                                     {copiedKey === 'headline' ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
                                   </button>
                                 </div>
-                                <div className="text-base font-bold text-white leading-snug">
+                                <div className="text-sm font-semibold text-slate-100 leading-snug">
                                   {cue.headline_answer}
                                 </div>
                               </div>
 
-                              {/* Code Snippet Card (Parakeet Coding Rounds) */}
+                              {/* Code Snippet Card */}
                               {cue.codeSnippet && (
-                                <div className="rounded-xl border border-white/10 bg-[#0B0F17] overflow-hidden">
-                                  <div className="flex items-center justify-between bg-slate-900/80 px-3.5 py-2 border-b border-white/10 text-xs">
-                                    <div className="flex items-center gap-2 font-mono text-emerald-400">
+                                <div className="rounded-lg border border-slate-800 bg-slate-950 overflow-hidden">
+                                  <div className="flex items-center justify-between bg-slate-900 px-3 py-1.5 border-b border-slate-800 text-xs">
+                                    <div className="flex items-center gap-1.5 font-mono text-emerald-400">
                                       <Code2 className="h-3.5 w-3.5" />
                                       <span>Optimized Solution</span>
                                     </div>
-                                    <div className="flex items-center gap-3">
+                                    <div className="flex items-center gap-2">
                                       {cue.complexity && (
                                         <span className="text-[10px] font-mono text-slate-400">
                                           {cue.complexity}
@@ -1558,26 +1412,26 @@ export default function App() {
                                         className="text-[11px] text-emerald-400 hover:underline flex items-center gap-1"
                                       >
                                         {copiedKey === 'codesnip' ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-                                        <span>Copy Code</span>
+                                        <span>Copy</span>
                                       </button>
                                     </div>
                                   </div>
-                                  <pre className="p-3 text-xs font-mono text-emerald-300/90 overflow-x-auto leading-relaxed bg-[#080B10]">
+                                  <pre className="p-3 text-xs font-mono text-emerald-300 overflow-x-auto leading-relaxed">
                                     <code>{cue.codeSnippet}</code>
                                   </pre>
                                 </div>
                               )}
 
-                              {/* Bullet Points */}
+                              {/* STAR Bullet Points */}
                               {cue.bullets && cue.bullets.length > 0 && (
-                                <div>
-                                  <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">
-                                    Key Talking Points (STAR Arc):
-                                  </div>
-                                  <div className="grid gap-2">
+                                <div className="space-y-1.5">
+                                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
+                                    Key Talking Points (STAR Method)
+                                  </span>
+                                  <div className="grid gap-1.5">
                                     {cue.bullets.map((b, i) => (
-                                      <div key={i} className="flex items-start gap-2.5 rounded-lg bg-white/5 p-2.5 text-xs text-slate-200">
-                                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-emerald-500/20 text-[10px] font-bold text-emerald-400">
+                                      <div key={i} className="flex items-start gap-2 rounded bg-slate-950/60 p-2 text-xs text-slate-200 border border-slate-800/80">
+                                        <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded bg-emerald-500/10 text-[10px] font-bold text-emerald-400">
                                           {i + 1}
                                         </span>
                                         <span className="leading-relaxed">{b}</span>
@@ -1587,20 +1441,20 @@ export default function App() {
                                 </div>
                               )}
 
-                              {/* Trade-off or caveat */}
+                              {/* Trade-off callout */}
                               {cue.tradeoff && (
-                                <div className="rounded-lg border border-amber-500/20 bg-amber-950/20 p-3 text-xs text-amber-200">
-                                  <span className="font-bold">Trade-off / Nuance:</span> {cue.tradeoff}
+                                <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-2.5 text-xs text-amber-200">
+                                  <span className="font-semibold">Trade-off to mention:</span> {cue.tradeoff}
                                 </div>
                               )}
 
-                              {/* Full spoken response */}
+                              {/* Full script */}
                               {cue.full_answer && (
-                                <div className="pt-2 border-t border-white/10">
-                                  <div className="flex items-center justify-between mb-1.5">
-                                    <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                                      Natural Spoken Script:
-                                    </div>
+                                <div className="pt-2 border-t border-slate-800">
+                                  <div className="flex items-center justify-between mb-1">
+                                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                                      Full Spoken Script
+                                    </span>
                                     <div className="flex items-center gap-2">
                                       <button
                                         type="button"
@@ -1620,34 +1474,34 @@ export default function App() {
                                       </button>
                                     </div>
                                   </div>
-                                  <p className="text-xs leading-relaxed text-slate-300 bg-[#0C1017] p-3 rounded-xl border border-white/5">
+                                  <p className="text-xs leading-relaxed text-slate-300 bg-slate-950 p-2.5 rounded-lg border border-slate-800">
                                     {cue.full_answer}
                                   </p>
                                 </div>
                               )}
                             </div>
                           ) : (
-                            <div className="rounded-xl border border-dashed border-white/10 p-8 text-center text-xs text-slate-500">
-                              Waiting for question... When you or your interviewer speak, live guidance and STAR points will appear here automatically.
+                            <div className="rounded-lg border border-dashed border-slate-800 p-6 text-center text-xs text-slate-500">
+                              Waiting for question... Speak into your mic or select a question to see real-time answer cues.
                             </div>
                           )}
                         </div>
                       )}
                     </div>
 
-                    {/* Right Column: Q&A Timeline History */}
-                    <aside className="space-y-4">
-                      <div className="rounded-2xl border border-white/10 bg-[#141A26] p-4 shadow-lg">
-                        <div className="mb-3 flex items-center justify-between border-b border-white/10 pb-2">
-                          <div className="text-xs font-bold uppercase tracking-wider text-slate-300">
-                            Session Timeline
-                          </div>
-                          <span className="text-xs text-slate-500">
-                            {activeSession.qaPairs?.length || 0} items
+                    {/* Right Column: Q&A Timeline */}
+                    <aside className="space-y-3">
+                      <div className="rounded-xl border border-slate-800 bg-slate-900/70 p-3.5">
+                        <div className="mb-2.5 flex items-center justify-between border-b border-slate-800 pb-2">
+                          <span className="text-xs font-semibold text-slate-300">
+                            Timeline History
+                          </span>
+                          <span className="text-[10px] text-slate-500 font-mono">
+                            {activeSession.qaPairs?.length || 0}
                           </span>
                         </div>
 
-                        <div className="max-h-[520px] space-y-2.5 overflow-y-auto pr-1">
+                        <div className="max-h-[460px] space-y-1.5 overflow-y-auto pr-1">
                           {activeSession.qaPairs && activeSession.qaPairs.length > 0 ? (
                             activeSession.qaPairs.map((item, idx) => (
                               <div
@@ -1662,9 +1516,9 @@ export default function App() {
                                     }
                                   }
                                 }}
-                                className="cursor-pointer rounded-xl border border-white/10 bg-[#0C1017] p-3 text-xs transition hover:border-emerald-500/40 hover:bg-white/5"
+                                className="cursor-pointer rounded-lg border border-slate-800/80 bg-slate-950 p-2 text-xs transition hover:border-slate-700 hover:text-emerald-400"
                               >
-                                <div className="font-semibold text-white line-clamp-2 mb-1">
+                                <div className="font-medium text-slate-200 line-clamp-2 mb-1">
                                   {item.question}
                                 </div>
                                 <div className="text-[10px] text-slate-500 flex items-center justify-between">
@@ -1675,7 +1529,7 @@ export default function App() {
                             ))
                           ) : (
                             <div className="text-center text-xs text-slate-500 py-6">
-                              No questions recorded yet in this session.
+                              No questions recorded yet.
                             </div>
                           )}
                         </div>
@@ -1685,73 +1539,73 @@ export default function App() {
                 </div>
               )}
 
-              {/* RECENT SESSIONS LIST (When no active session is running) */}
+              {/* PAST SESSIONS LIST (When no active session) */}
               {!activeSession && !showSetup && (
-                <div className="rounded-2xl border border-white/10 bg-[#141A26] p-5 shadow-lg space-y-4">
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <div className="text-sm font-bold uppercase tracking-wider text-slate-300">
-                        Past Sessions History
-                      </div>
-                      <span className="rounded-full bg-white/10 px-2 py-0.5 text-xs text-slate-400 font-mono">
+                <div className="rounded-xl border border-slate-800 bg-slate-900/70 p-4 space-y-3">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-semibold text-slate-300">
+                        Past Session History
+                      </span>
+                      <span className="rounded bg-slate-800 px-1.5 py-0.5 text-[10px] text-slate-400 font-mono">
                         {filteredSessions.length}
                       </span>
                     </div>
 
                     <div className="flex items-center gap-2 w-full sm:w-auto">
-                      <div className="relative flex-1 sm:w-56">
-                        <Search className="h-3.5 w-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                      <div className="relative flex-1 sm:w-48">
+                        <Search className="h-3.5 w-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500" />
                         <input
                           value={historySearch}
                           onChange={(e) => setHistorySearch(e.target.value)}
-                          placeholder="Search past sessions..."
-                          className="w-full rounded-xl border border-white/10 bg-[#0C1017] pl-8 pr-3 py-1.5 text-xs text-white outline-none focus:border-emerald-500/50"
+                          placeholder="Search sessions..."
+                          className="w-full rounded-lg border border-slate-800 bg-slate-950 pl-7 pr-2.5 py-1 text-xs text-white outline-none focus:border-emerald-500"
                         />
                       </div>
                       {sessions.length > 0 && (
                         <button
                           type="button"
                           onClick={clearAllSessions}
-                          className="rounded-xl border border-rose-500/20 bg-rose-500/10 px-3 py-1.5 text-xs font-semibold text-rose-300 hover:bg-rose-500/20 transition"
+                          className="rounded-lg border border-rose-500/20 bg-rose-500/10 px-2.5 py-1 text-xs font-medium text-rose-300 hover:bg-rose-500/20 transition"
                         >
-                          Clear All
+                          Clear
                         </button>
                       )}
                     </div>
                   </div>
 
-                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
                     {filteredSessions.length === 0 ? (
-                      <div className="col-span-full rounded-xl border border-dashed border-white/10 p-8 text-center text-xs text-slate-500">
-                        {historySearch ? 'No matching sessions found.' : 'No previous call sessions found. Click "+ Create Live Session" above to begin.'}
+                      <div className="col-span-full rounded-lg border border-dashed border-slate-800 p-6 text-center text-xs text-slate-500">
+                        {historySearch ? 'No matching sessions found.' : 'No sessions found. Create a session to get started.'}
                       </div>
                     ) : (
                       filteredSessions.map((s) => (
                         <div
                           key={s.id}
-                          className="rounded-xl border border-white/10 bg-[#0C1017] p-4 flex flex-col justify-between hover:border-emerald-500/30 transition group"
+                          className="rounded-lg border border-slate-800 bg-slate-950 p-3 flex flex-col justify-between hover:border-slate-700 transition"
                         >
                           <div>
-                            <div className="flex items-center justify-between text-xs text-slate-500 mb-1 font-mono">
+                            <div className="flex items-center justify-between text-[11px] text-slate-500 mb-1">
                               <span>{new Date(s.createdAt).toLocaleDateString()}</span>
-                              <span className="rounded bg-white/5 px-1.5 py-0.5 text-[10px] text-slate-300 uppercase font-semibold">
+                              <span className="rounded bg-slate-900 px-1 py-0.2 text-[9px] text-slate-300 uppercase font-semibold">
                                 {s.mode}
                               </span>
                             </div>
-                            <div className="font-bold text-white text-sm truncate">{s.company}</div>
-                            <div className="text-xs text-slate-400 truncate">{s.role}</div>
+                            <div className="font-bold text-slate-200 text-xs truncate">{s.company}</div>
+                            <div className="text-[11px] text-slate-400 truncate">{s.role}</div>
                           </div>
 
-                          <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between text-xs">
-                            <span className="text-slate-400">{s.qaPairs?.length || 0} Questions</span>
-                            <div className="flex items-center gap-2">
+                          <div className="mt-3 pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs">
+                            <span className="text-slate-500 text-[11px]">{s.qaPairs?.length || 0} Questions</span>
+                            <div className="flex items-center gap-1.5">
                               <button
                                 type="button"
                                 onClick={(e) => deleteSession(s.id, e)}
                                 className="text-slate-500 hover:text-rose-400 p-1"
-                                title="Delete session"
+                                title="Delete"
                               >
-                                <Trash2 className="h-3.5 w-3.5" />
+                                <Trash2 className="h-3 w-3" />
                               </button>
                               <button
                                 type="button"
@@ -1759,7 +1613,7 @@ export default function App() {
                                   setActiveSessionId(s.id);
                                   setCreateMode(s.mode || 'live');
                                 }}
-                                className="rounded-lg bg-emerald-500/10 px-2.5 py-1 font-semibold text-emerald-400 hover:bg-emerald-500/20 transition"
+                                className="rounded bg-emerald-500/10 px-2 py-0.5 text-xs font-semibold text-emerald-400 hover:bg-emerald-500/20 transition"
                               >
                                 Resume
                               </button>
@@ -1774,16 +1628,16 @@ export default function App() {
             </div>
           )}
 
-          {/* PARAKEET LEETCODE & CODE SOLVER VIEW */}
+          {/* CODE & DSA SOLVER VIEW */}
           {nav === 'coding' && (
-            <div className="space-y-6 max-w-5xl">
+            <div className="space-y-4 max-w-4xl">
               <div>
-                <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2.5">
-                  <Terminal className="h-6 w-6 text-emerald-400" />
+                <h1 className="text-xl font-bold tracking-tight text-slate-100 flex items-center gap-2">
+                  <Terminal className="h-5 w-5 text-emerald-400" />
                   <span>LeetCode & Live Coding Co-Pilot</span>
                 </h1>
-                <p className="text-sm text-slate-400">
-                  Parakeet AI coding round assistant: solve live LeetCode/HackerRank algorithmic challenges, analyze Big-O time & space complexity, and push optimal code directly to your stealth teleprompter.
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Algorithmic challenge solver, Big-O runtime analysis, and 1-click teleprompter HUD sync.
                 </p>
               </div>
 
@@ -1800,60 +1654,60 @@ export default function App() {
                   });
                   setCurrentQuestion(solution.title);
                   setShowStealthTeleprompter(true);
-                  setSuccessToast('Code solution sent to Parakeet Stealth Teleprompter HUD!');
+                  setSuccessToast('Code solution sent to Stealth Teleprompter HUD!');
                 }}
               />
             </div>
           )}
 
-          {/* ROLE PRESETS & SAMPLE QUESTIONS VIEW */}
+          {/* ROLE PRESETS VIEW */}
           {nav === 'presets' && (
-            <div className="space-y-6 max-w-5xl">
+            <div className="space-y-5 max-w-4xl">
               <div>
-                <h1 className="text-2xl font-bold tracking-tight text-white">Interview Presets & Question Bank</h1>
-                <p className="text-sm text-slate-400">
-                  Select 1-click profiles and explore categorized interview questions for practice and live simulation.
+                <h1 className="text-xl font-bold tracking-tight text-slate-100">Role Presets & Question Bank</h1>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  1-click profiles and categorized question library for rapid preparation.
                 </p>
               </div>
 
               {/* Ready-to-use Presets */}
-              <div className="grid gap-4 md:grid-cols-3">
+              <div className="grid gap-3 sm:grid-cols-3">
                 {RESUME_PRESETS.map((preset) => (
                   <div
                     key={preset.id}
-                    className="rounded-2xl border border-white/10 bg-[#141A26] p-5 flex flex-col justify-between hover:border-emerald-500/40 transition space-y-4"
+                    className="rounded-xl border border-slate-800 bg-slate-900/70 p-4 flex flex-col justify-between hover:border-slate-700 transition space-y-3"
                   >
                     <div>
-                      <div className="text-xs font-bold uppercase tracking-wider text-emerald-400 mb-1">
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 mb-1">
                         {preset.interviewType}
                       </div>
-                      <div className="text-base font-bold text-white mb-1">{preset.name}</div>
+                      <div className="text-sm font-bold text-slate-100 mb-1">{preset.name}</div>
                       <div className="text-xs text-slate-400 line-clamp-3">{preset.resumeText}</div>
                     </div>
 
                     <button
                       type="button"
                       onClick={() => applyPreset(preset)}
-                      className="w-full rounded-xl bg-white/5 hover:bg-emerald-500/20 border border-white/10 hover:border-emerald-500/40 py-2 text-xs font-bold text-slate-200 hover:text-emerald-300 transition flex items-center justify-center gap-1.5"
+                      className="w-full rounded-lg bg-slate-800 hover:bg-emerald-500/20 border border-slate-700 hover:border-emerald-500/40 py-1.5 text-xs font-semibold text-slate-200 hover:text-emerald-300 transition flex items-center justify-center gap-1.5"
                     >
-                      <Check className="h-3.5 w-3.5" />
-                      <span>Apply This Preset</span>
+                      <Check className="h-3 w-3" />
+                      <span>Apply Preset</span>
                     </button>
                   </div>
                 ))}
               </div>
 
               {/* Categorized Question Library */}
-              <div className="space-y-4">
-                <div className="text-lg font-bold text-white">Categorized Question Bank</div>
-                <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-3">
+                <div className="text-sm font-semibold text-slate-200">Categorized Question Bank</div>
+                <div className="grid gap-3 sm:grid-cols-2">
                   {sampleCategories.map((cat, idx) => (
-                    <div key={idx} className="rounded-2xl border border-white/10 bg-[#141A26] p-5 space-y-3">
-                      <div className="text-sm font-bold text-emerald-400 flex items-center gap-2">
-                        <BookOpen className="h-4 w-4" />
+                    <div key={idx} className="rounded-xl border border-slate-800 bg-slate-900/70 p-4 space-y-2.5">
+                      <div className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
+                        <BookOpen className="h-3.5 w-3.5" />
                         <span>{cat.title}</span>
                       </div>
-                      <div className="space-y-2">
+                      <div className="space-y-1.5">
                         {cat.questions.map((q, qIdx) => (
                           <div
                             key={qIdx}
@@ -1864,10 +1718,9 @@ export default function App() {
                                 createSession('live');
                               }
                             }}
-                            className="cursor-pointer rounded-xl border border-white/5 bg-[#0C1017] p-3 text-xs text-slate-200 hover:border-emerald-500/40 hover:bg-white/5 transition flex items-center justify-between group"
+                            className="cursor-pointer rounded-lg border border-slate-800 bg-slate-950 p-2 text-xs text-slate-300 hover:border-slate-700 hover:text-emerald-400 transition"
                           >
-                            <span className="line-clamp-2 pr-2">{q}</span>
-                            <ArrowRight className="h-3.5 w-3.5 text-slate-500 group-hover:text-emerald-400 shrink-0 transition" />
+                            <span className="line-clamp-2">{q}</span>
                           </div>
                         ))}
                       </div>
@@ -1880,28 +1733,28 @@ export default function App() {
 
           {/* DIAGNOSTICS & VOICE TEST VIEW */}
           {nav === 'diagnostics' && (
-            <div className="space-y-6 max-w-4xl">
+            <div className="space-y-4 max-w-4xl">
               <div>
-                <h1 className="text-2xl font-bold tracking-tight text-white">Voice & Microphone Diagnostics</h1>
-                <p className="text-sm text-slate-400">
-                  Configure accent recognition, test microphone gain booster, loopback test, and verify audio clarity.
+                <h1 className="text-xl font-bold tracking-tight text-slate-100">Microphone & Audio Diagnostics</h1>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Configure speech recognition, test microphone gain, run loopback audio test, and verify signals.
                 </p>
               </div>
 
-              {/* Settings Card */}
-              <div className="rounded-2xl border border-white/10 bg-[#141A26] p-6 shadow-xl space-y-5">
-                <div className="text-base font-bold text-white flex items-center gap-2 border-b border-white/10 pb-3">
-                  <Sliders className="h-5 w-5 text-emerald-400" />
-                  Speech Recognition & Audio Settings
+              {/* Audio Settings Card */}
+              <div className="rounded-xl border border-slate-800 bg-slate-900/70 p-4 space-y-4">
+                <div className="text-sm font-bold text-slate-100 flex items-center gap-2 border-b border-slate-800 pb-2">
+                  <Sliders className="h-4 w-4 text-emerald-400" />
+                  Audio Recognition Configuration
                 </div>
 
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <label className="space-y-1.5 text-xs text-slate-300">
-                    <span className="font-semibold text-slate-400">Speech Accent / Dialect Recognition</span>
+                <div className="grid gap-3.5 sm:grid-cols-2">
+                  <label className="space-y-1 text-xs text-slate-300">
+                    <span className="font-semibold text-slate-400">Accent Recognition Dialect</span>
                     <select
                       value={audioSettings.language}
                       onChange={(e) => setAudioSettings((s) => ({ ...s, language: e.target.value }))}
-                      className="w-full rounded-xl border border-white/10 bg-[#0C1017] px-3 py-2.5 text-sm text-slate-100 outline-none focus:border-emerald-500/50"
+                      className="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-slate-100 outline-none focus:border-emerald-500"
                     >
                       {ACCENT_OPTIONS.map((opt) => (
                         <option key={opt.value} value={opt.value}>
@@ -1911,11 +1764,11 @@ export default function App() {
                     </select>
                   </label>
 
-                  <label className="space-y-1.5 text-xs text-slate-300">
+                  <label className="space-y-1 text-xs text-slate-300">
                     <span className="font-semibold text-slate-400">
-                      Microphone Volume Gain Boost ({Math.round(audioSettings.micGain * 100)}%)
+                      Mic Volume Gain Booster ({Math.round(audioSettings.micGain * 100)}%)
                     </span>
-                    <div className="pt-2">
+                    <div className="pt-1.5">
                       <input
                         type="range"
                         min="1.0"
@@ -1925,17 +1778,17 @@ export default function App() {
                         onChange={(e) =>
                           setAudioSettings((s) => ({ ...s, micGain: parseFloat(e.target.value) }))
                         }
-                        className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-400"
+                        className="w-full h-1.5 bg-slate-800 rounded appearance-none cursor-pointer accent-emerald-400"
                       />
                     </div>
                   </label>
 
-                  <label className="space-y-1.5 text-xs text-slate-300">
-                    <span className="font-semibold text-slate-400">Question Trigger Pause Delay</span>
+                  <label className="space-y-1 text-xs text-slate-300">
+                    <span className="font-semibold text-slate-400">Question Trigger Silence Pause</span>
                     <select
                       value={audioSettings.silenceDelay}
                       onChange={(e) => setAudioSettings((s) => ({ ...s, silenceDelay: parseInt(e.target.value, 10) }))}
-                      className="w-full rounded-xl border border-white/10 bg-[#0C1017] px-3 py-2.5 text-sm text-slate-100 outline-none focus:border-emerald-500/50"
+                      className="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-slate-100 outline-none focus:border-emerald-500"
                     >
                       <option value="1200">Fast (1.2 seconds pause)</option>
                       <option value="1800">Balanced (1.8 seconds pause)</option>
@@ -1943,142 +1796,116 @@ export default function App() {
                     </select>
                   </label>
 
-                  <label className="space-y-1.5 text-xs text-slate-300">
-                    <span className="font-semibold text-slate-400">Automatic Question Detection</span>
-                    <div className="pt-2 flex items-center gap-3">
+                  <label className="space-y-1 text-xs text-slate-300">
+                    <span className="font-semibold text-slate-400">Automatic Question Trigger</span>
+                    <div className="pt-1.5 flex items-center gap-2">
                       <input
                         type="checkbox"
                         id="auto-detect-toggle"
                         checked={audioSettings.autoDetectQuestions}
                         onChange={(e) => setAudioSettings((s) => ({ ...s, autoDetectQuestions: e.target.checked }))}
-                        className="h-4 w-4 rounded border-white/10 bg-slate-900 text-emerald-500 focus:ring-emerald-400"
+                        className="h-3.5 w-3.5 rounded border-slate-700 bg-slate-900 text-emerald-500 focus:ring-emerald-400"
                       />
                       <label htmlFor="auto-detect-toggle" className="text-xs text-slate-300 cursor-pointer">
-                        Auto-generate cue card on question detection
+                        Auto-generate blueprint on question detected
                       </label>
                     </div>
                   </label>
                 </div>
               </div>
 
-              {/* Main Test Card */}
-              <div className="rounded-2xl border border-white/10 bg-[#141A26] p-6 shadow-xl space-y-6">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-white/10">
+              {/* Main Signal & Loopback Card */}
+              <div className="rounded-xl border border-slate-800 bg-slate-900/70 p-4 space-y-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
                   <div>
-                    <div className="text-base font-bold text-white flex items-center gap-2">
-                      <Mic className="h-5 w-5 text-emerald-400" />
+                    <div className="text-sm font-bold text-slate-100 flex items-center gap-1.5">
+                      <Mic className="h-4 w-4 text-emerald-400" />
                       Live Microphone Signal Test
                     </div>
-                    <div className="text-xs text-slate-400 mt-1">Speak into your mic to watch the live signal and visualizer.</div>
+                    <div className="text-xs text-slate-400 mt-0.5">Speak to verify mic signal, level meter, and transcription.</div>
                   </div>
 
                   <button
                     type="button"
                     onClick={toggleMic}
-                    className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition shadow-md ${
+                    className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
                       micEnabled
                         ? 'bg-emerald-500 text-slate-950 hover:bg-emerald-400'
-                        : 'bg-slate-800 text-white border border-white/10 hover:bg-slate-700'
+                        : 'bg-slate-800 text-white border border-slate-700 hover:bg-slate-700'
                     }`}
                   >
-                    {micEnabled ? <Mic className="h-4 w-4 animate-bounce" /> : <MicOff className="h-4 w-4" />}
-                    <span>{micEnabled ? 'Stop Listening' : 'Start Mic Test'}</span>
+                    {micEnabled ? <Mic className="h-3.5 w-3.5" /> : <MicOff className="h-3.5 w-3.5" />}
+                    <span>{micEnabled ? 'Stop Test' : 'Start Mic Test'}</span>
                   </button>
                 </div>
 
                 {/* Level Meter & Visualizer */}
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between text-xs font-semibold">
-                    <span className="text-slate-400">Microphone Input Level</span>
-                    <span className="text-emerald-400 font-mono">{volumeLevel}% Signal Strength</span>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-xs text-slate-400 font-medium">
+                    <span>Signal Strength</span>
+                    <span className="text-emerald-400 font-mono">{volumeLevel}%</span>
                   </div>
-                  <div className="h-3 w-full bg-slate-900 rounded-full overflow-hidden border border-white/10 p-0.5">
+                  <div className="h-2 w-full bg-slate-950 rounded-full overflow-hidden border border-slate-800">
                     <div
-                      className="h-full rounded-full bg-gradient-to-r from-emerald-600 via-emerald-400 to-teal-300 transition-all duration-75"
-                      style={{ width: `${Math.max(4, volumeLevel)}%` }}
+                      className="h-full rounded-full bg-emerald-400 transition-all duration-75"
+                      style={{ width: `${Math.max(3, volumeLevel)}%` }}
                     />
                   </div>
 
-                  <div className="flex justify-center pt-2">
+                  <div className="flex justify-center pt-1">
                     <AudioVisualizer audioStream={audioStream} isActive={micEnabled} volume={volumeLevel} />
                   </div>
                 </div>
 
-                {/* Loopback Audio Playback Test */}
-                <div className="rounded-xl border border-white/10 bg-[#0C1017] p-4 space-y-3">
+                {/* Loopback Test */}
+                <div className="rounded-lg border border-slate-800 bg-slate-950 p-3 space-y-2">
                   <div className="flex items-center justify-between">
                     <div>
-                      <div className="text-xs font-bold text-white flex items-center gap-1.5">
+                      <div className="text-xs font-semibold text-slate-200 flex items-center gap-1.5">
                         <Repeat className="h-3.5 w-3.5 text-emerald-400" />
-                        Microphone Loopback Clarity Test
+                        Loopback Audio Clarity Test
                       </div>
-                      <div className="text-[11px] text-slate-400">Record a 4-second voice sample and play it back to test audio clarity.</div>
+                      <div className="text-[11px] text-slate-400">Record a 4-second audio sample and play back.</div>
                     </div>
 
                     <button
                       type="button"
                       onClick={startLoopbackTest}
                       disabled={isLoopbackRecording}
-                      className="rounded-lg bg-emerald-500/20 border border-emerald-500/40 px-3 py-1.5 text-xs font-bold text-emerald-300 hover:bg-emerald-500/30 transition disabled:opacity-50"
+                      className="rounded bg-slate-800 border border-slate-700 px-2.5 py-1 text-xs font-semibold text-slate-200 hover:bg-slate-700 transition disabled:opacity-50"
                     >
                       {isLoopbackRecording ? 'Recording (4s)...' : 'Record 4s Sample'}
                     </button>
                   </div>
 
                   {loopbackAudioUrl && (
-                    <div className="pt-2 flex items-center gap-3">
-                      <span className="text-xs text-emerald-400 font-semibold">Playback sample:</span>
-                      <audio controls src={loopbackAudioUrl} className="h-8 w-full max-w-sm" />
+                    <div className="pt-1 flex items-center gap-2">
+                      <span className="text-xs text-emerald-400 font-medium">Playback:</span>
+                      <audio controls src={loopbackAudioUrl} className="h-7 w-full max-w-xs" />
                     </div>
                   )}
                 </div>
 
-                {/* Live Speech-to-Text Transcription Box */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-xs font-semibold">
-                    <span className="text-slate-400">Real-Time Transcription Test ({audioSettings.language})</span>
-                    {interimText && <span className="text-emerald-400 animate-pulse text-[11px]">Transcribing audio...</span>}
-                  </div>
-                  <div className="min-h-[80px] rounded-xl border border-white/10 bg-[#0C1017] p-4 text-sm text-slate-200">
-                    {interimText ? (
-                      <span className="text-emerald-300 italic">"{interimText}"</span>
-                    ) : recentTranscripts.length > 0 ? (
-                      <div className="space-y-1.5">
-                        {recentTranscripts.map((t) => (
-                          <div key={t.id} className="text-xs text-slate-300">
-                            <span className="text-slate-500 font-mono mr-2">[{t.time}]</span>
-                            <span>{t.text}</span>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <span className="text-slate-500 italic">
-                        {micEnabled ? 'Speak now into your microphone to test voice transcription...' : 'Click "Start Mic Test" above and speak.'}
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Diagnostics Check status */}
-                <div className="grid gap-3 sm:grid-cols-3 pt-2">
-                  <div className="rounded-xl border border-white/10 bg-[#0C1017] p-3 text-xs">
-                    <div className="text-slate-400 font-medium mb-1">Web Speech API</div>
+                {/* Status Badges */}
+                <div className="grid gap-2 sm:grid-cols-3 pt-1">
+                  <div className="rounded-lg border border-slate-800 bg-slate-950 p-2.5 text-xs">
+                    <div className="text-slate-500 font-medium mb-0.5">Web Speech API</div>
                     <div className="font-semibold text-emerald-400 flex items-center gap-1">
-                      <CheckCircle2 className="h-3.5 w-3.5" />
+                      <CheckCircle2 className="h-3 w-3" />
                       <span>{speechRecognitionSupported ? 'Supported' : 'Manual Mode'}</span>
                     </div>
                   </div>
-                  <div className="rounded-xl border border-white/10 bg-[#0C1017] p-3 text-xs">
-                    <div className="text-slate-400 font-medium mb-1">Permission State</div>
+                  <div className="rounded-lg border border-slate-800 bg-slate-950 p-2.5 text-xs">
+                    <div className="text-slate-500 font-medium mb-0.5">Mic Permission</div>
                     <div className="font-semibold text-emerald-400 flex items-center gap-1">
-                      <CheckCircle2 className="h-3.5 w-3.5" />
+                      <CheckCircle2 className="h-3 w-3" />
                       <span className="capitalize">{permissionStatus}</span>
                     </div>
                   </div>
-                  <div className="rounded-xl border border-white/10 bg-[#0C1017] p-3 text-xs">
-                    <div className="text-slate-400 font-medium mb-1">Audio Pipeline</div>
+                  <div className="rounded-lg border border-slate-800 bg-slate-950 p-2.5 text-xs">
+                    <div className="text-slate-500 font-medium mb-0.5">Audio Filter</div>
                     <div className="font-semibold text-emerald-400 flex items-center gap-1">
-                      <CheckCircle2 className="h-3.5 w-3.5" />
+                      <CheckCircle2 className="h-3 w-3" />
                       <span>{audioStream ? 'Gain Filter Active' : 'Ready'}</span>
                     </div>
                   </div>
@@ -2089,16 +1916,16 @@ export default function App() {
 
           {/* RESUMES VIEW */}
           {nav === 'resumes' && (
-            <div className="rounded-2xl border border-white/10 bg-[#141A26] p-6 shadow-xl space-y-4 max-w-4xl">
+            <div className="rounded-xl border border-slate-800 bg-slate-900/70 p-5 space-y-3.5 max-w-4xl">
               <div className="flex items-center justify-between">
                 <div>
-                  <h1 className="text-2xl font-bold tracking-tight text-white">CVs & Resumes</h1>
-                  <p className="text-sm text-slate-400">Update your background notes so AI suggestions match your actual experience.</p>
+                  <h1 className="text-xl font-bold tracking-tight text-slate-100">CVs & Background</h1>
+                  <p className="text-xs text-slate-400 mt-0.5">Candidate skills, past projects, and technology stack.</p>
                 </div>
                 <button
                   type="button"
                   onClick={() => setSuccessToast('Resume details saved!')}
-                  className="rounded-xl bg-emerald-500 px-4 py-2 text-xs font-bold text-slate-950 hover:bg-emerald-400 transition"
+                  className="rounded-lg bg-emerald-500 px-3.5 py-1.5 text-xs font-semibold text-slate-950 hover:bg-emerald-400 transition"
                 >
                   Save Profile
                 </button>
@@ -2107,23 +1934,23 @@ export default function App() {
                 value={profile.resumeText}
                 onChange={(e) => setProfile((p) => ({ ...p, resumeText: e.target.value }))}
                 rows={10}
-                className="w-full rounded-2xl border border-white/10 bg-[#0C1017] p-4 text-sm text-slate-100 outline-none focus:border-emerald-500/50"
+                className="w-full rounded-lg border border-slate-800 bg-slate-950 p-3 text-xs text-slate-200 outline-none focus:border-emerald-500 leading-relaxed font-mono"
               />
             </div>
           )}
 
           {/* DOCUMENTS VIEW */}
           {nav === 'documents' && (
-            <div className="rounded-2xl border border-white/10 bg-[#141A26] p-6 shadow-xl space-y-4 max-w-4xl">
+            <div className="rounded-xl border border-slate-800 bg-slate-900/70 p-5 space-y-3.5 max-w-4xl">
               <div className="flex items-center justify-between">
                 <div>
-                  <h1 className="text-2xl font-bold tracking-tight text-white">Job Description & Documents</h1>
-                  <p className="text-sm text-slate-400">Provide job requirements and company values for grounded answers.</p>
+                  <h1 className="text-xl font-bold tracking-tight text-slate-100">Job Description & Culture</h1>
+                  <p className="text-xs text-slate-400 mt-0.5">Target company job requirements for grounded answers.</p>
                 </div>
                 <button
                   type="button"
                   onClick={() => setSuccessToast('Job description saved!')}
-                  className="rounded-xl bg-emerald-500 px-4 py-2 text-xs font-bold text-slate-950 hover:bg-emerald-400 transition"
+                  className="rounded-lg bg-emerald-500 px-3.5 py-1.5 text-xs font-semibold text-slate-950 hover:bg-emerald-400 transition"
                 >
                   Save Documents
                 </button>
@@ -2132,14 +1959,14 @@ export default function App() {
                 value={profile.jobDescription}
                 onChange={(e) => setProfile((p) => ({ ...p, jobDescription: e.target.value }))}
                 rows={10}
-                className="w-full rounded-2xl border border-white/10 bg-[#0C1017] p-4 text-sm text-slate-100 outline-none focus:border-emerald-500/50"
+                className="w-full rounded-lg border border-slate-800 bg-slate-950 p-3 text-xs text-slate-200 outline-none focus:border-emerald-500 leading-relaxed font-mono"
               />
             </div>
           )}
         </main>
       </div>
 
-      {/* Stealth Teleprompter Floating HUD Overlay (Parakeet AI Engine) */}
+      {/* Stealth Teleprompter HUD Floating Component */}
       <StealthTeleprompter
         isOpen={showStealthTeleprompter}
         onClose={() => setShowStealthTeleprompter(false)}
@@ -2148,34 +1975,26 @@ export default function App() {
         currentQuestion={currentQuestion}
         micEnabled={micEnabled}
         onToggleMic={toggleMic}
-        isListening={isListening}
         interimText={interimText}
         onSpeakAnswer={speakText}
         isSpeaking={isSpeakingTTS}
         onStopSpeech={stopTTS}
-        onRegenerate={() => {
-          if (currentQuestion) {
-            handleDetectedQuestion(currentQuestion);
-          }
-        }}
         company={profile.company}
-        role={profile.role}
       />
 
-      {/* Floating Success Toast */}
+      {/* Toast notifications */}
       {successToast && (
-        <div className="fixed bottom-5 right-5 z-50 flex items-center gap-2.5 rounded-xl border border-emerald-500/30 bg-[#131924] px-4 py-3 text-xs text-emerald-300 shadow-2xl">
-          <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
+        <div className="fixed bottom-5 left-5 z-50 flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-slate-900 px-3 py-2 text-xs text-emerald-300 shadow-xl">
+          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
           <span>{successToast}</span>
         </div>
       )}
 
-      {/* Floating Error Toast */}
       {errorText && (
-        <div className="fixed bottom-5 right-5 z-50 flex items-center gap-3 rounded-xl border border-amber-500/30 bg-[#1B212C] px-4 py-3 text-xs text-amber-200 shadow-xl">
-          <AlertCircle className="h-4 w-4 text-amber-400 shrink-0" />
+        <div className="fixed bottom-5 left-5 z-50 flex items-center gap-2.5 rounded-lg border border-amber-500/30 bg-slate-900 px-3 py-2 text-xs text-amber-200 shadow-xl">
+          <AlertCircle className="h-3.5 w-3.5 text-amber-400 shrink-0" />
           <span>{errorText}</span>
-          <button type="button" onClick={() => setErrorText('')} className="ml-2 text-slate-400 hover:text-white">✕</button>
+          <button type="button" onClick={() => setErrorText('')} className="ml-1 text-slate-400 hover:text-white">✕</button>
         </div>
       )}
     </div>

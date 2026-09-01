@@ -5,13 +5,8 @@ import {
   Copy,
   Check,
   Zap,
-  Play,
   Terminal,
-  Layers,
-  BookOpen,
-  ArrowRight,
   RefreshCw,
-  Cpu,
 } from 'lucide-react';
 
 const COMMON_LEETCODE_PRESETS = [
@@ -98,9 +93,9 @@ BEGIN
     WHERE ranking = N
   );
 END;`,
-    complexity: 'Time: O(N log N) index sort | Space: O(1)',
+    complexity: 'Time: O(N log N) | Space: O(1)',
     keyPoints: [
-      'Use DENSE_RANK() instead of RANK() or ROW_NUMBER() so ties share the same ranking.',
+      'Use DENSE_RANK() instead of RANK() so ties share the same ranking.',
       'DISTINCT avoids duplicate returns for multiple employees with identical salary.',
       'Returns NULL cleanly if table has fewer than N distinct salary tiers.'
     ]
@@ -141,7 +136,6 @@ export function CodingProblemSolver({ onSendToTeleprompter }) {
     setIsSolving(true);
 
     setTimeout(() => {
-      // Find matching preset or dynamic generation
       const matched = COMMON_LEETCODE_PRESETS.find(
         (p) =>
           p.title.toLowerCase().includes(problemText.toLowerCase()) ||
@@ -155,17 +149,17 @@ export function CodingProblemSolver({ onSendToTeleprompter }) {
           title: `Optimized Solution for Problem`,
           lang: language,
           problem: problemText,
-          code: `// Optimal ${language.toUpperCase()} Solution\npublic class Solution {\n    public Object solveProblem(Object input) {\n        // Step 1: Input validation and edge cases\n        if (input == null) return null;\n        \n        // Step 2: Optimal Data Structure Processing\n        // Using two-pointer / HashMap / Dynamic Programming\n        \n        return input;\n    }\n}`,
-          complexity: 'Time: O(N) Linear | Space: O(1) Constant',
+          code: `// Optimal ${language.toUpperCase()} Solution\npublic class Solution {\n    public Object solveProblem(Object input) {\n        // 1. Edge case handling\n        if (input == null) return null;\n        \n        // 2. Optimal Data Structure logic\n        // Two-pointer / HashMap / DP approach\n        \n        return input;\n    }\n}`,
+          complexity: 'Time: O(N) | Space: O(1)',
           keyPoints: [
-            'Clarify constraint bounds (negative values, empty arrays, scale).',
-            'Optimal approach avoids brute-force quadratic loops.',
-            'Tested for edge conditions: zero elements, single node, max integer limits.'
+            'Clarify constraint bounds (negative values, scale, limits).',
+            'Avoid brute-force nested loops.',
+            'Tested for edge conditions: zero elements, single node, max boundaries.'
           ]
         });
       }
       setIsSolving(false);
-    }, 450);
+    }, 350);
   };
 
   const handleCopy = () => {
@@ -176,54 +170,47 @@ export function CodingProblemSolver({ onSendToTeleprompter }) {
   };
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-slate-900/60 p-5 backdrop-blur-md">
-      <div className="flex items-center justify-between border-b border-white/10 pb-4 mb-5">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/20 border border-emerald-500/30 text-emerald-400">
-            <Terminal className="h-5 w-5" />
-          </div>
-          <div>
-            <h3 className="text-base font-bold text-white flex items-center gap-2">
-              <span>Parakeet Live Code & DSA Solver</span>
-              <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-bold text-emerald-400 border border-emerald-500/30">
-                LeetCode / HackerRank Co-Pilot
-              </span>
-            </h3>
-            <p className="text-xs text-slate-400">
-              Paste coding questions or screen prompts to get instant compilable code, complexity, and walkthroughs.
-            </p>
-          </div>
+    <div className="rounded-xl border border-slate-800 bg-slate-900/70 p-5 space-y-5">
+      {/* Top Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-4">
+        <div>
+          <h2 className="text-base font-semibold text-slate-100 flex items-center gap-2">
+            <Terminal className="h-4 w-4 text-emerald-400" />
+            <span>Coding & Algorithm Co-Pilot</span>
+          </h2>
+          <p className="text-xs text-slate-400 mt-0.5">
+            Instant optimal solutions, Big-O complexity analysis, and 1-click HUD integration.
+          </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <select
-            value={language}
-            onChange={(e) => setLanguage(e.target.value)}
-            className="rounded-lg border border-white/10 bg-slate-800 px-3 py-1.5 text-xs text-slate-200 focus:border-emerald-500 focus:outline-none"
-          >
-            <option value="java">Java 17/21</option>
-            <option value="python">Python 3</option>
-            <option value="sql">SQL (PostgreSQL/MySQL)</option>
-            <option value="javascript">JavaScript / TypeScript</option>
-            <option value="cpp">C++ (STL)</option>
-          </select>
-        </div>
+        <select
+          value={language}
+          onChange={(e) => setLanguage(e.target.value)}
+          className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs text-slate-200 focus:border-emerald-500 focus:outline-none w-fit"
+        >
+          <option value="java">Java 17/21</option>
+          <option value="python">Python 3</option>
+          <option value="sql">SQL (PostgreSQL/MySQL)</option>
+          <option value="javascript">JavaScript / TypeScript</option>
+          <option value="cpp">C++ (STL)</option>
+        </select>
       </div>
 
-      {/* Preset Quick Chips */}
-      <div className="mb-4">
-        <span className="text-[11px] font-semibold text-slate-400 block mb-1.5">
-          Common Interview Problems:
+      {/* Preset Problem Chips */}
+      <div>
+        <span className="text-[11px] font-semibold text-slate-400 block mb-2">
+          Popular Algorithmic Problems:
         </span>
         <div className="flex flex-wrap gap-2">
           {COMMON_LEETCODE_PRESETS.map((preset, idx) => (
             <button
               key={idx}
+              type="button"
               onClick={() => {
                 setSolution(preset);
                 setProblemText(preset.problem);
               }}
-              className="rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-slate-300 hover:border-emerald-500/40 hover:bg-emerald-950/30 hover:text-emerald-300 transition"
+              className="rounded-lg border border-slate-800 bg-slate-950/80 px-2.5 py-1.5 text-xs text-slate-300 hover:border-slate-700 hover:text-emerald-400 transition"
             >
               {preset.title}
             </button>
@@ -232,38 +219,38 @@ export function CodingProblemSolver({ onSendToTeleprompter }) {
       </div>
 
       {/* Input Problem Box */}
-      <div className="space-y-3 mb-6">
+      <div className="space-y-3">
         <textarea
           rows={3}
           value={problemText}
           onChange={(e) => setProblemText(e.target.value)}
-          placeholder="Paste LeetCode, HackerRank, Spring API or SQL problem description here..."
-          className="w-full rounded-xl border border-white/10 bg-slate-950/80 p-3 text-xs text-white placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none font-mono"
+          placeholder="Paste coding problem description, LeetCode prompt, or API requirement..."
+          className="w-full rounded-lg border border-slate-800 bg-slate-950 p-3 text-xs text-slate-200 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none font-mono"
         />
 
         <div className="flex items-center justify-between">
-          <span className="text-[11px] text-slate-400">
-            Press solve to generate optimal algorithmic code & complexity.
+          <span className="text-[11px] text-slate-500">
+            Generates clean, production-ready code with algorithmic complexity.
           </span>
 
           <button
+            type="button"
             onClick={handleSolve}
             disabled={isSolving || !problemText.trim()}
-            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 px-4 py-2 text-xs font-bold text-slate-950 hover:opacity-90 disabled:opacity-50 transition"
+            className="flex items-center gap-1.5 rounded-lg bg-emerald-500 px-4 py-2 text-xs font-semibold text-slate-950 hover:bg-emerald-400 disabled:opacity-50 transition"
           >
             {isSolving ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Zap className="h-3.5 w-3.5" />}
-            <span>{isSolving ? 'Solving Problem...' : '⚡ Generate Code Solution'}</span>
+            <span>{isSolving ? 'Solving...' : 'Solve Problem'}</span>
           </button>
         </div>
       </div>
 
-      {/* Code Solution Display */}
+      {/* Solution Viewer */}
       {solution && (
-        <div className="rounded-xl border border-white/10 bg-slate-950 overflow-hidden">
-          <div className="flex items-center justify-between border-b border-white/10 bg-slate-900/60 px-4 py-2.5">
+        <div className="rounded-xl border border-slate-800 bg-slate-950 overflow-hidden">
+          <div className="flex items-center justify-between border-b border-slate-800 bg-slate-900/80 px-3.5 py-2">
             <div className="flex items-center gap-2">
-              <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
-              <span className="text-xs font-bold text-white">{solution.title}</span>
+              <span className="text-xs font-semibold text-slate-200">{solution.title}</span>
               <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
                 {solution.complexity}
               </span>
@@ -271,41 +258,42 @@ export function CodingProblemSolver({ onSendToTeleprompter }) {
 
             <div className="flex items-center gap-2">
               <button
+                type="button"
                 onClick={handleCopy}
-                className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-slate-200 hover:bg-white/10 transition"
+                className="flex items-center gap-1 rounded bg-slate-800 px-2.5 py-1 text-xs text-slate-300 hover:bg-slate-700 hover:text-white transition"
               >
-                {copied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
-                <span>{copied ? 'Copied' : 'Copy Code'}</span>
+                {copied ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
+                <span>{copied ? 'Copied' : 'Copy'}</span>
               </button>
 
               {onSendToTeleprompter && (
                 <button
+                  type="button"
                   onClick={() => onSendToTeleprompter(solution)}
-                  className="flex items-center gap-1.5 rounded-lg bg-emerald-500/20 border border-emerald-500/40 px-2.5 py-1 text-xs font-semibold text-emerald-300 hover:bg-emerald-500/30 transition"
+                  className="flex items-center gap-1 rounded bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-1 text-xs font-semibold text-emerald-300 hover:bg-emerald-500/25 transition"
                 >
-                  <Sparkles className="h-3.5 w-3.5" />
-                  <span>Send to Stealth HUD</span>
+                  <Sparkles className="h-3 w-3" />
+                  <span>Send to HUD</span>
                 </button>
               )}
             </div>
           </div>
 
-          <div className="p-4">
+          <div className="p-3.5">
             <pre className="font-mono text-xs text-emerald-300 leading-relaxed overflow-x-auto whitespace-pre-wrap">
               {solution.code}
             </pre>
           </div>
 
-          {/* Explanation Takeaways */}
           {solution.keyPoints && (
-            <div className="border-t border-white/10 bg-slate-900/40 p-4">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-2">
-                Key Algorithmic Talking Points for Interviewer:
+            <div className="border-t border-slate-800 bg-slate-900/50 p-3.5">
+              <span className="text-[11px] font-semibold text-slate-400 block mb-1.5">
+                Key Points for Interviewer:
               </span>
               <ul className="space-y-1 text-xs text-slate-300">
                 {solution.keyPoints.map((pt, i) => (
                   <li key={i} className="flex items-start gap-2">
-                    <span className="mt-1 h-1.5 w-1.5 rounded-full bg-emerald-400 shrink-0" />
+                    <span className="mt-1.5 h-1 w-1 rounded-full bg-emerald-400 shrink-0" />
                     <span>{pt}</span>
                   </li>
                 ))}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Mic,
   MicOff,
@@ -9,17 +9,11 @@ import {
   Minimize2,
   Maximize2,
   Sliders,
-  Sparkles,
   Code2,
   FileText,
   Zap,
   Layers,
   X,
-  Move,
-  Eye,
-  EyeOff,
-  ChevronDown,
-  RefreshCw,
 } from 'lucide-react';
 
 export function StealthTeleprompter({
@@ -30,24 +24,20 @@ export function StealthTeleprompter({
   currentQuestion,
   micEnabled,
   onToggleMic,
-  isListening,
   interimText,
   onSpeakAnswer,
   isSpeaking,
   onStopSpeech,
-  onRegenerate,
   company,
-  role,
 }) {
   const [activeTab, setActiveTab] = useState('flash'); // 'flash' | 'star' | 'code' | 'script'
-  const [opacity, setOpacity] = useState(92); // 40 to 100
-  const [fontSize, setFontSize] = useState('medium'); // 'small' | 'medium' | 'large'
-  const [position, setPosition] = useState('top-center'); // 'top-center' | 'top-right' | 'compact'
+  const [opacity, setOpacity] = useState(95);
+  const [fontSize, setFontSize] = useState('medium');
+  const [position, setPosition] = useState('top-center');
   const [isCopied, setIsCopied] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
 
-  // Copy helper
   const handleCopy = (text) => {
     if (!text) return;
     navigator.clipboard?.writeText(text);
@@ -59,23 +49,25 @@ export function StealthTeleprompter({
     return (
       <button
         id="reopen-stealth-hud-btn"
+        type="button"
         onClick={() => onOpen?.()}
-        className="fixed bottom-6 right-6 z-[9999] flex items-center gap-2 rounded-full border border-emerald-400/50 bg-slate-950/90 px-4 py-2.5 text-xs font-bold text-emerald-300 shadow-2xl shadow-emerald-500/20 backdrop-blur-md hover:bg-emerald-950 hover:border-emerald-300 transition animate-bounce"
-        title="Open Parakeet Stealth Teleprompter HUD (Shift+P)"
+        className="fixed bottom-5 right-5 z-40 flex items-center gap-2 rounded-full border border-emerald-500/30 bg-slate-900/90 px-3.5 py-2 text-xs font-semibold text-emerald-400 shadow-xl backdrop-blur-md hover:bg-slate-800 hover:border-emerald-400/50 transition duration-150 group"
+        title="Open Stealth Teleprompter HUD (Shift+P)"
       >
-        <span className="h-2 w-2 rounded-full bg-emerald-400 animate-ping" />
-        <Zap className="h-4 w-4 text-emerald-400" />
-        <span>Open Parakeet HUD</span>
+        <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 group-hover:scale-125 transition" />
+        <Zap className="h-3.5 w-3.5" />
+        <span>Stealth HUD</span>
+        <span className="text-[10px] text-slate-500 font-mono">Shift+P</span>
       </button>
     );
   }
 
   const fontClass =
-    fontSize === 'small' ? 'text-xs leading-relaxed' : fontSize === 'large' ? 'text-base leading-relaxed' : 'text-sm leading-relaxed';
+    fontSize === 'small' ? 'text-xs leading-normal' : fontSize === 'large' ? 'text-base leading-relaxed' : 'text-sm leading-relaxed';
 
   const positionClasses = {
-    'top-center': 'top-4 left-1/2 -translate-x-1/2 w-[94vw] max-w-2xl',
-    'top-right': 'top-4 right-4 w-[90vw] max-w-xl',
+    'top-center': 'top-4 left-1/2 -translate-x-1/2 w-[92vw] max-w-xl',
+    'top-right': 'top-4 right-4 w-[90vw] max-w-lg',
     'compact': 'top-4 left-1/2 -translate-x-1/2 w-[85vw] max-w-md',
   };
 
@@ -83,107 +75,110 @@ export function StealthTeleprompter({
     <div
       id="stealth-teleprompter-hud"
       style={{
-        backgroundColor: `rgba(10, 15, 29, ${opacity / 100})`,
-        backdropFilter: 'blur(20px)',
+        backgroundColor: `rgba(15, 23, 42, ${opacity / 100})`,
       }}
-      className={`fixed z-[9999] rounded-2xl border-2 border-emerald-400/60 shadow-2xl shadow-black transition-all duration-200 overflow-hidden ${
+      className={`fixed z-50 rounded-xl border border-slate-700/60 shadow-2xl backdrop-blur-xl transition-all duration-150 overflow-hidden ${
         positionClasses[position] || positionClasses['top-center']
       }`}
     >
-      {/* Top Drag & Control Bar */}
-      <div className="flex items-center justify-between border-b border-white/10 px-3.5 py-2 bg-white/5 select-none">
+      {/* HUD Header */}
+      <div className="flex items-center justify-between border-b border-slate-800 px-3.5 py-2 bg-slate-900/60 select-none">
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-emerald-500/20 border border-emerald-500/30">
-            <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-[11px] font-bold tracking-wider text-emerald-300 uppercase">
-              Parakeet Stealth HUD
-            </span>
+          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[11px] font-semibold">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+            <span>HUD Live</span>
           </div>
 
           <button
+            type="button"
             onClick={onToggleMic}
-            className={`flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold transition ${
+            className={`flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium transition ${
               micEnabled
-                ? 'bg-emerald-500 text-slate-950 hover:bg-emerald-400'
-                : 'bg-rose-500/20 text-rose-300 border border-rose-500/30 hover:bg-rose-500/30'
+                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                : 'bg-slate-800 text-slate-400 hover:text-slate-200'
             }`}
           >
-            {micEnabled ? <Mic className="h-3 w-3" /> : <MicOff className="h-3 w-3" />}
-            {micEnabled ? 'Listening' : 'Mic Muted'}
+            {micEnabled ? <Mic className="h-3 w-3 text-emerald-400" /> : <MicOff className="h-3 w-3" />}
+            <span>{micEnabled ? 'Listening' : 'Mic Off'}</span>
           </button>
         </div>
 
-        {/* HUD Window Controls */}
+        {/* HUD Controls */}
         <div className="flex items-center gap-1 text-slate-400">
           <button
+            type="button"
             onClick={() => setShowSettings(!showSettings)}
-            title="Teleprompter Display Settings"
-            className="p-1 rounded hover:bg-white/10 hover:text-slate-200 transition"
+            title="Display Settings"
+            className="p-1 rounded hover:bg-slate-800 hover:text-slate-200 transition"
           >
             <Sliders className="h-3.5 w-3.5" />
           </button>
 
           <button
+            type="button"
             onClick={() => setIsMinimized(!isMinimized)}
-            title={isMinimized ? 'Expand HUD' : 'Collapse to Mini'}
-            className="p-1 rounded hover:bg-white/10 hover:text-slate-200 transition"
+            title={isMinimized ? 'Expand' : 'Collapse'}
+            className="p-1 rounded hover:bg-slate-800 hover:text-slate-200 transition"
           >
             {isMinimized ? <Maximize2 className="h-3.5 w-3.5" /> : <Minimize2 className="h-3.5 w-3.5" />}
           </button>
 
           <button
+            type="button"
             onClick={onClose}
             title="Close Teleprompter"
-            className="p-1 rounded hover:bg-rose-500/20 hover:text-rose-300 transition"
+            className="p-1 rounded hover:bg-slate-800 hover:text-rose-400 transition"
           >
             <X className="h-3.5 w-3.5" />
           </button>
         </div>
       </div>
 
-      {/* Settings Bar Overlay */}
+      {/* Settings Row */}
       {showSettings && (
-        <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-2 border-b border-white/10 bg-slate-900/90 text-xs text-slate-300">
+        <div className="flex flex-wrap items-center justify-between gap-3 px-3.5 py-2 border-b border-slate-800 bg-slate-950/80 text-xs text-slate-300">
           <div className="flex items-center gap-2">
             <span className="text-[11px] text-slate-400">Opacity:</span>
             <input
               type="range"
-              min="35"
+              min="40"
               max="100"
               value={opacity}
               onChange={(e) => setOpacity(Number(e.target.value))}
-              className="w-20 accent-emerald-400 cursor-pointer"
+              className="w-16 accent-emerald-400 cursor-pointer h-1 bg-slate-700 rounded"
             />
             <span className="text-[10px] font-mono text-emerald-400">{opacity}%</span>
           </div>
 
-          <div className="flex items-center gap-1.5">
-            <span className="text-[11px] text-slate-400">Font:</span>
+          <div className="flex items-center gap-1">
+            <span className="text-[11px] text-slate-400 mr-1">Font:</span>
             {['small', 'medium', 'large'].map((s) => (
               <button
                 key={s}
+                type="button"
                 onClick={() => setFontSize(s)}
-                className={`px-2 py-0.5 rounded text-[10px] font-semibold uppercase ${
-                  fontSize === s ? 'bg-emerald-500 text-slate-950' : 'bg-white/5 hover:bg-white/10 text-slate-300'
+                className={`px-1.5 py-0.5 rounded text-[10px] font-medium uppercase ${
+                  fontSize === s ? 'bg-emerald-500 text-slate-950 font-bold' : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
                 }`}
               >
-                {s}
+                {s[0]}
               </button>
             ))}
           </div>
 
-          <div className="flex items-center gap-1.5">
-            <span className="text-[11px] text-slate-400">Dock:</span>
+          <div className="flex items-center gap-1">
+            <span className="text-[11px] text-slate-400 mr-1">Dock:</span>
             {[
-              { id: 'top-center', label: 'Camera' },
+              { id: 'top-center', label: 'Center' },
               { id: 'top-right', label: 'Right' },
               { id: 'compact', label: 'Mini' },
             ].map((p) => (
               <button
                 key={p.id}
+                type="button"
                 onClick={() => setPosition(p.id)}
-                className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
-                  position === p.id ? 'bg-emerald-500 text-slate-950' : 'bg-white/5 hover:bg-white/10 text-slate-300'
+                className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                  position === p.id ? 'bg-emerald-500 text-slate-950 font-bold' : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
                 }`}
               >
                 {p.label}
@@ -193,79 +188,82 @@ export function StealthTeleprompter({
         </div>
       )}
 
-      {/* Active Question Ticker */}
-      <div className="px-4 py-2 border-b border-white/5 bg-slate-950/40">
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex items-start gap-2 flex-1 min-w-0">
-            <span className="mt-0.5 shrink-0 px-1.5 py-0.5 rounded bg-emerald-500/20 border border-emerald-500/30 text-[10px] font-bold text-emerald-300 uppercase">
+      {/* Active Question Display */}
+      <div className="px-3.5 py-2 border-b border-slate-800 bg-slate-900/30">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <span className="px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 text-[10px] font-bold">
               Q
             </span>
-            <p className="text-xs font-semibold text-white truncate">
-              {currentQuestion || interimText || 'Listening for interviewer question...'}
+            <p className="text-xs font-medium text-slate-200 truncate">
+              {currentQuestion || interimText || 'Listening for questions...'}
             </p>
           </div>
 
           {cue && (
             <div className="flex items-center gap-1 shrink-0">
               <button
+                type="button"
                 onClick={() => {
                   if (isSpeaking) onStopSpeech?.();
                   else onSpeakAnswer?.(cue.full_answer || cue.headline_answer);
                 }}
                 className={`p-1 rounded text-xs transition ${
-                  isSpeaking ? 'bg-emerald-500 text-slate-950' : 'bg-white/5 text-slate-300 hover:bg-white/10'
+                  isSpeaking ? 'bg-emerald-500 text-slate-950' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
                 }`}
-                title={isSpeaking ? 'Stop Audio' : 'Listen via Earpiece TTS'}
+                title={isSpeaking ? 'Stop Audio' : 'Listen with TTS'}
               >
-                {isSpeaking ? <VolumeX className="h-3.5 w-3.5 animate-pulse" /> : <Volume2 className="h-3.5 w-3.5" />}
+                {isSpeaking ? <VolumeX className="h-3 w-3" /> : <Volume2 className="h-3 w-3" />}
               </button>
 
               <button
+                type="button"
                 onClick={() =>
                   handleCopy(
                     activeTab === 'code'
                       ? cue.codeSnippet || cue.full_answer
                       : activeTab === 'script'
                       ? cue.full_answer
-                      : `${cue.headline_answer}\n\nKey Points:\n` + (cue.bullets || []).map((b) => `• ${b}`).join('\n')
+                      : `${cue.headline_answer}\n\n` + (cue.bullets || []).map((b) => `• ${b}`).join('\n')
                   )
                 }
-                className="p-1 rounded text-xs bg-white/5 text-slate-300 hover:bg-white/10 transition"
-                title="Copy Answer"
+                className="p-1 rounded text-xs bg-slate-800 text-slate-300 hover:bg-slate-700 transition"
+                title="Copy"
               >
-                {isCopied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
+                {isCopied ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
               </button>
             </div>
           )}
         </div>
 
         {interimText && (
-          <p className="mt-1 text-[11px] text-amber-300/80 italic truncate animate-pulse">
+          <p className="mt-1 text-[11px] text-emerald-400/80 italic truncate">
             Transcribing: {interimText}
           </p>
         )}
       </div>
 
-      {/* Main HUD Answer Content (Collapsed when isMinimized) */}
+      {/* Main Content Area */}
       {!isMinimized && (
-        <div className="p-3.5">
-          {/* Quick Tab Switcher */}
-          <div className="flex items-center gap-1.5 border-b border-white/10 pb-2 mb-2.5">
+        <div className="p-3">
+          {/* Tab navigation */}
+          <div className="flex items-center gap-1 border-b border-slate-800 pb-2 mb-2">
             {[
-              { id: 'flash', label: '⚡ Flash Cue', icon: Zap },
-              { id: 'star', label: '🎯 STAR Points', icon: Layers },
-              { id: 'code', label: '💻 Code / Solution', icon: Code2 },
-              { id: 'script', label: '📜 Teleprompter Script', icon: FileText },
+              { id: 'flash', label: 'Headline', icon: Zap },
+              { id: 'star', label: 'STAR Points', icon: Layers },
+              { id: 'code', label: 'Code', icon: Code2 },
+              { id: 'script', label: 'Script', icon: FileText },
             ].map((tab) => {
               const Icon = tab.icon;
               return (
                 <button
                   key={tab.id}
+                  type="button"
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition ${
+                  className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition ${
                     activeTab === tab.id
-                      ? 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-300'
-                      : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
+                      ? 'bg-emerald-500/15 text-emerald-400 font-semibold'
+                      : 'text-slate-400 hover:text-slate-200'
                   }`}
                 >
                   <Icon className="h-3 w-3" />
@@ -275,82 +273,68 @@ export function StealthTeleprompter({
             })}
           </div>
 
-          {/* Tab 1: Flash Cue */}
+          {/* Tab 1: Headline Response */}
           {activeTab === 'flash' && (
-            <div className={`space-y-2 text-slate-100 ${fontClass}`}>
-              <div className="rounded-xl border border-emerald-500/30 bg-emerald-950/20 p-2.5">
+            <div className={`space-y-2 ${fontClass}`}>
+              <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-2.5">
                 <span className="block text-[10px] font-bold uppercase tracking-wider text-emerald-400 mb-0.5">
-                  10-Second Eye-Contact Headline:
+                  5-Second Answer:
                 </span>
-                <p className="font-semibold text-white">
-                  {cue?.headline_answer || 'Speak clearly, structure with STAR, mention relevant projects.'}
+                <p className="font-semibold text-slate-100">
+                  {cue?.headline_answer || 'Start with a high-level summary, explain architectural reasoning, and mention real-world results.'}
                 </p>
               </div>
 
               {cue?.bullets && cue.bullets.length > 0 && (
-                <ul className="space-y-1.5 pl-1">
+                <ul className="space-y-1 pl-1 text-xs text-slate-300">
                   {cue.bullets.slice(0, 3).map((b, i) => (
-                    <li key={i} className="flex items-start gap-2 text-slate-200">
-                      <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-400" />
+                    <li key={i} className="flex items-start gap-1.5">
+                      <span className="mt-1 h-1 w-1 shrink-0 rounded-full bg-emerald-400" />
                       <span>{b}</span>
                     </li>
                   ))}
                 </ul>
               )}
-
-              {cue?.tradeoff && (
-                <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-2 text-xs text-amber-200">
-                  <span className="font-bold">Tradeoff to mention:</span> {cue.tradeoff}
-                </div>
-              )}
             </div>
           )}
 
-          {/* Tab 2: STAR Breakdown */}
+          {/* Tab 2: STAR Points */}
           {activeTab === 'star' && (
-            <div className={`space-y-2 text-slate-200 ${fontClass}`}>
+            <div className={`space-y-1.5 text-xs text-slate-200 max-h-52 overflow-y-auto ${fontClass}`}>
               {cue?.bullets?.map((bullet, idx) => (
-                <div key={idx} className="rounded-lg border border-white/5 bg-white/5 p-2 flex items-start gap-2.5">
-                  <span className="shrink-0 font-mono text-[11px] font-bold text-emerald-400 px-1.5 py-0.5 rounded bg-emerald-500/10">
-                    0{idx + 1}
+                <div key={idx} className="rounded bg-slate-900/60 p-2 flex items-start gap-2 border border-slate-800/80">
+                  <span className="shrink-0 font-mono text-[10px] font-bold text-emerald-400 px-1 rounded bg-emerald-500/10">
+                    {idx + 1}
                   </span>
-                  <p className="text-slate-100 leading-snug">{bullet}</p>
+                  <p className="text-slate-200 leading-snug">{bullet}</p>
                 </div>
               ))}
-              {cue?.tradeoff && (
-                <p className="text-xs text-amber-300 italic pt-1 border-t border-white/5">
-                  💡 Architectural Trade-off: {cue.tradeoff}
-                </p>
-              )}
             </div>
           )}
 
-          {/* Tab 3: Code & DSA Solution */}
+          {/* Tab 3: Code */}
           {activeTab === 'code' && (
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               {cue?.complexity && (
-                <div className="flex items-center justify-between text-xs font-mono text-emerald-300 px-2 py-1 rounded bg-emerald-950/40 border border-emerald-500/20">
-                  <span>{cue.complexity}</span>
-                  <span className="text-[10px] text-slate-400">Optimal Runtime</span>
+                <div className="text-[11px] font-mono text-emerald-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">
+                  {cue.complexity}
                 </div>
               )}
-
-              <div className="relative rounded-xl border border-white/10 bg-slate-950 p-3 max-h-56 overflow-y-auto">
+              <div className="rounded-lg border border-slate-800 bg-slate-950 p-2.5 max-h-48 overflow-y-auto">
                 <pre className="font-mono text-xs text-emerald-300 leading-relaxed whitespace-pre-wrap">
-                  {cue?.codeSnippet ||
-                    `// Solution for ${currentQuestion || 'Technical problem'}\npublic class Solution {\n    public void execute() {\n        // Optimized O(N) logic\n    }\n}`}
+                  {cue?.codeSnippet || '// No code snippet for this conceptual question.'}
                 </pre>
               </div>
             </div>
           )}
 
-          {/* Tab 4: Teleprompter Spoken Script */}
+          {/* Tab 4: Full Script */}
           {activeTab === 'script' && (
-            <div className="max-h-56 overflow-y-auto pr-1">
-              <div className={`rounded-xl border border-white/10 bg-slate-950/60 p-3 text-slate-100 ${fontClass}`}>
-                <p className="leading-relaxed whitespace-pre-line">
+            <div className="max-h-48 overflow-y-auto">
+              <div className={`rounded-lg bg-slate-950 p-2.5 text-slate-200 border border-slate-800 ${fontClass}`}>
+                <p className="leading-relaxed whitespace-pre-line text-xs">
                   {cue?.full_answer ||
-                    `In my work at ${company || 'previous projects'}, I approached this systematically: first validating requirements, structuring clean modular services, and verifying with automated tests.`}
+                    `In my background at ${company || 'previous roles'}, I have designed and delivered scalable services with clean modular architecture and automated testing.`}
                 </p>
               </div>
             </div>
