@@ -1,221 +1,146 @@
-<div align="center">
+# Interview Cracker
 
-# 🎙️ Interview Cracker
+Interview Cracker is an AI-assisted interview preparation application for live guidance and structured practice.
 
-**AI-powered interview preparation copilot**
+It combines voice-based question capture, prompt orchestration, and response generation to help candidates prepare concise, role-aligned answers.
 
-Live answer cues, practice feedback, and transcript review — all in real time.
+## Key Capabilities
 
-[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)](https://react.dev)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.4-06B6D4?logo=tailwindcss)](https://tailwindcss.com)
-[![Node.js](https://img.shields.io/badge/Node.js-20-339933?logo=node.js)](https://nodejs.org)
-[![Anthropic](https://img.shields.io/badge/Claude-Sonnet-4-D97706?logo=anthropic)](https://anthropic.com)
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+- **Live mode support** for real-time interviewer question handling
+- **Practice mode coaching** with scoring, strengths, weaknesses, and rewritten answers
+- **Speech-driven workflows** using browser-native speech features
+- **Fallback generation** when remote model calls are unavailable
+- **Session history and transcript export** for post-session review
 
-</div>
+## Architecture Overview
 
----
+The repository contains:
 
-## ✨ Features
+- **Frontend (`src/`)**: React + Vite application with live/practice UX, speech capture, and local pipeline logic
+- **Backend (`server/`)**: Express API for `/api/suggest` prompt execution and fallback responses
 
-| Feature | Description |
-|---------|-------------|
-| 🎤 **Real-time Question Detection** | Web Speech API listens for interviewer questions automatically |
-| 🧠 **AI-Powered Answers** | Claude generates context-aware responses based on your profile |
-| 🎭 **Stealth Mode** | Discreet floating panel for use during screen sharing |
-| 📊 **Practice Mode** | Submit your own answers and get scored with rewrite suggestions |
-| 📸 **Screenshot Capture** | Attach screenshots of code, slides, or whiteboard notes |
-| 📜 **Session History** | Review past interviews with full Q&A transcripts |
-| ⚡ **Instant Fallback** | Local response generation when API is unavailable |
+High-level flow:
 
----
+1. Capture interviewer question (voice/manual input)
+2. Build mode-specific prompt and context
+3. Generate structured suggestion
+4. Render coaching output in the UI
+5. Persist session data for review
 
-## 🏗️ Architecture
+## Technology Stack
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        Browser (React)                          │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│   ┌──────────────┐    ┌──────────────┐    ┌──────────────┐     │
-│   │   Web Speech  │───▶│   Question   │───▶│  Prompt      │     │
-│   │   API         │    │   Detector   │    │  Builder     │     │
-│   └──────────────┘    └──────────────┘    └──────┬───────┘     │
-│                                                    │             │
-│   ┌──────────────┐    ┌──────────────┐    ┌───────▼──────┐     │
-│   │  Cue Card    │◀───│   Answer     │◀───│  Anthropic   │     │
-│   │  Renderer    │    │   Parser     │    │  API / Local │     │
-│   └──────────────┘    └──────────────┘    └──────────────┘     │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
-```
+- React 19
+- Vite 8
+- Tailwind CSS 3
+- Node.js + Express 4
+- Anthropic Messages API (optional)
 
----
+## Prerequisites
 
-## 🚀 Quick Start
+- Node.js 18+
+- npm 9+
+- Optional Anthropic API key for model-backed suggestions
 
-### Prerequisites
-
-- **Node.js** ≥ 18.x
-- **npm** ≥ 9.x
-- **Anthropic API Key** ([Get one here](https://console.anthropic.com/))
-
-### Installation
+## Setup
 
 ```bash
-# Clone the repository
 git clone https://github.com/Asishranjansahu/Interview-Cracker.git
 cd Interview-Cracker
-
-# Install dependencies
 npm install
-
-# Set up environment variables
 cp .env.example .env
-# Edit .env and add your ANTHROPIC_API_KEY
 ```
 
-### Development
+Configure `.env` values as needed:
+
+- `ANTHROPIC_API_KEY` (backend API route)
+- `VITE_ANTHROPIC_API_KEY` (frontend pipeline)
+- `VITE_DEEPGRAM_API_KEY` (optional streaming STT path)
+
+## Running the Application
+
+### Frontend (primary)
 
 ```bash
-# Start the development server
 npm run dev
 ```
 
-Open [http://localhost:4173](http://localhost:4173) in your browser.
+Vite dev server runs on `http://localhost:3000`.
 
----
+### Backend API (optional)
 
-## ⚙️ Environment Variables
-
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `ANTHROPIC_API_KEY` | Yes | Your Anthropic API key for Claude |
-| `PORT` | No | Server port (default: `3001`) |
-
----
-
-## 📁 Project Structure
-
-```
-Interview-Cracker/
-├── src/                          # React frontend
-│   ├── App.jsx                   # Main application component
-│   ├── main.jsx                  # React entry point
-│   └── index.css                 # Global styles + Tailwind
-├── server/                       # Express backend
-│   ├── index.js                  # Server entry point
-│   ├── routes/
-│   │   └── suggest.js           # Suggestion API endpoint
-│   └── lib/
-│       └── anthropicClient.js   # Anthropic API client
-├── docs/                         # Documentation
-│   ├── ethics-and-scope.md
-│   ├── pipeline-diagram.md
-│   └── prompt-design.md
-├── vite.config.js               # Vite configuration
-├── tailwind.config.js           # Tailwind CSS configuration
-└── package.json
+```bash
+node server/index.js
 ```
 
----
+Backend health endpoint:
 
-## 🔌 API Endpoints
+- `GET /health`
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/health` | Health check |
-| `POST` | `/api/suggest` | Generate interview response suggestion |
+Suggestion endpoint:
 
-### POST `/api/suggest`
+- `POST /api/suggest`
 
-**Request Body:**
+## NPM Scripts
+
+- `npm run dev` — start Vite dev server
+- `npm run build` — production build
+- `npm run lint` — currently mapped to build validation
+- `npm run preview` — preview production build locally
+
+## API Contract
+
+### `POST /api/suggest`
+
+Request body (common fields):
+
 ```json
 {
   "mode": "live",
-  "question": "Tell me about a time you solved a difficult problem",
+  "question": "Tell me about a difficult problem you solved",
   "role": "Software Engineer",
-  "company": "Google",
+  "company": "Example Corp",
   "resume_text": "...",
   "job_description": "..."
 }
 ```
 
-**Response:**
+Live mode response:
+
 ```json
 {
-  "headline_answer": "I identified the root cause, aligned stakeholders, and shipped a fix in 48 hours.",
-  "bullets": [
-    "Clarified the problem scope first",
-    "Aligned cross-functional team",
-    "Implemented incremental solution",
-    "Measured and documented results"
-  ],
-  "tradeoff": "Quick fix required follow-up refactoring",
-  "full_answer": "Full paragraph answer..."
+  "bullets": ["...", "...", "..."],
+  "full_answer": "...",
+  "note": ""
 }
 ```
 
----
+Practice mode response:
 
-## 🎯 Usage Modes
+```json
+{
+  "score": 4,
+  "strengths": ["...", "..."],
+  "weaknesses": ["...", "..."],
+  "rewritten_answer": "...",
+  "note": ""
+}
+```
 
-### Live Mode
-- Real-time question detection via microphone
-- Instant AI-generated answer suggestions
-- Stealth mode available for discreet use
+## Project Structure
 
-### Practice Mode
-- Manually input questions and your answers
-- Get scored on STAR structure, clarity, and impact
-- Receive rewritten versions of your answers
+```text
+Interview-Cracker/
+├── src/                  # React application
+├── server/               # Express API
+├── docs/                 # Supporting documentation
+├── package.json
+└── README.md
+```
 
----
+## Responsible Use
 
-## 🛠️ Tech Stack
+This project is intended for interview preparation and mock practice. Ensure usage aligns with employer and platform policies.
 
-| Layer | Technology |
-|-------|------------|
-| **Frontend** | React 19, Tailwind CSS 3.4, Vite 8 |
-| **Backend** | Node.js, Express 4.x |
-| **AI** | Anthropic Claude (Sonnet 4 / Haiku) |
-| **Speech** | Web Speech API (browser-native) |
-| **State** | React Hooks + localStorage |
+## License
 
----
-
-## ⚠️ Ethics & Disclaimer
-
-> This tool is designed for **interview preparation and practice only**.
->
-> Using AI assistance during actual interviews may violate company policies
-> and could be considered deceptive. Always use this tool responsibly and
-> in accordance with your organization's guidelines.
-
----
-
-## 🤝 Contributing
-
-Contributions are welcome! Please follow these steps:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
----
-
-## 📄 License
-
-This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
-
----
-
-<div align="center">
-
-**Built with ❤️ for interview preparation**
-
-[Report Bug](https://github.com/Asishranjansahu/Interview-Cracker/issues) · [Request Feature](https://github.com/Asishranjansahu/Interview-Cracker/issues)
-
-</div>
+MIT License. See `LICENSE`.
