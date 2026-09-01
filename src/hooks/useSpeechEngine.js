@@ -44,11 +44,12 @@ export function isProbableQuestion(text) {
   const clean = text.replace(/[^a-zA-Z0-9 ?]/g, ' ').replace(/\s+/g, ' ').trim();
   if (!clean) return false;
   const words = clean.split(/\s+/);
-  if (words.length < 3) return false;
+  if (words.length < 2) return false;
   const lower = clean.toLowerCase();
   const hasQuestionWord = QUESTION_STARTERS.some((w) => lower.startsWith(w) || lower.includes(` ${w} `) || lower.includes(` ${w}`));
   const hasQuestionMark = clean.endsWith('?');
-  return hasQuestionMark || hasQuestionWord;
+  // In an interview context, any phrase of 2+ words is considered actionable
+  return hasQuestionMark || hasQuestionWord || words.length >= 3;
 }
 
 export const ACCENT_OPTIONS = [
@@ -286,13 +287,14 @@ export function useSpeechEngine({
           }
         };
 
+        const latestSpeechRef = { current: '' };
+
         recognition.onresult = (event) => {
           let currentInterim = '';
           let currentFinal = '';
 
           for (let i = event.resultIndex; i < event.results.length; i++) {
             const item = event.results[i];
-            // Pick highest confidence or primary transcript
             const transcript = item[0]?.transcript || '';
             if (item.isFinal) {
               currentFinal += transcript + ' ';
@@ -301,16 +303,18 @@ export function useSpeechEngine({
             }
           }
 
-          if (currentInterim) {
-            const cleanedInterim = cleanAndEnhanceTranscript(currentInterim);
+          const cleanedInterim = cleanAndEnhanceTranscript(currentInterim);
+          if (cleanedInterim) {
             setInterimText(cleanedInterim);
           }
 
+          let combinedText = fullTranscriptAccumulator.current;
+
           if (currentFinal.trim()) {
             const cleanFinal = cleanAndEnhanceTranscript(currentFinal.trim());
-            const newAccumulated = (fullTranscriptAccumulator.current + ' ' + cleanFinal).trim();
-            fullTranscriptAccumulator.current = newAccumulated;
-            setAccumulatedText(newAccumulated);
+            combinedText = (fullTranscriptAccumulator.current + ' ' + cleanFinal).trim();
+            fullTranscriptAccumulator.current = combinedText;
+            setAccumulatedText(combinedText);
             setInterimText('');
 
             setRecentTranscripts((prev) => [
@@ -322,23 +326,32 @@ export function useSpeechEngine({
               },
             ]);
 
-            onSpeechTranscribed?.(cleanFinal, fullTranscriptAccumulator.current);
+            onSpeechTranscribed?.(cleanFinal, combinedText);
+          }
 
-            // Handle silence / question detection for live mode
-            if (mode === 'live') {
-              if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+          const activeSpokenCandidate = (combinedText + ' ' + (cleanedInterim || '')).trim();
+          latestSpeechRef.current = activeSpokenCandidate;
 
-              const accumulated = fullTranscriptAccumulator.current;
-              const isQ = isProbableQuestion(accumulated) || cleanFinal.endsWith('?');
+          // Always schedule question detection on speech pause (interim OR final)
+          if (mode === 'live' && onQuestionDetected && activeSpokenCandidate) {
+            if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
 
+            const isQ = isProbableQuestion(activeSpokenCandidate);
+            const wordCount = activeSpokenCandidate.split(/\s+/).filter(Boolean).length;
+            const targetDelay = isQ || activeSpokenCandidate.endsWith('?') ? 1100 : Math.min(silenceDelay || 1500, 1600);
+
+            if (wordCount >= 2) {
               silenceTimerRef.current = setTimeout(() => {
-                const textToEvaluate = fullTranscriptAccumulator.current.trim();
-                if (textToEvaluate && (isQ || textToEvaluate.split(/\s+/).length >= 4)) {
-                  onQuestionDetected?.(textToEvaluate);
+                const textToEvaluate = (latestSpeechRef.current || fullTranscriptAccumulator.current || '').trim();
+                if (textToEvaluate && textToEvaluate.split(/\s+/).length >= 2) {
+                  console.info('[useSpeechEngine] Question detected from voice:', textToEvaluate);
+                  onQuestionDetected(textToEvaluate);
                   fullTranscriptAccumulator.current = '';
+                  latestSpeechRef.current = '';
                   setAccumulatedText('');
+                  setInterimText('');
                 }
-              }, isQ ? Math.min(silenceDelay, 1400) : silenceDelay);
+              }, targetDelay);
             }
           }
         };

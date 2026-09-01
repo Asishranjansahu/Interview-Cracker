@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import { AudioVisualizer } from './components/AudioVisualizer';
 import { useSpeechEngine, ACCENT_OPTIONS } from './hooks/useSpeechEngine';
+import { findMatchingAnswer } from './utils/interviewKnowledgeBase';
 
 const STORAGE_KEY = 'greenroom_sessions_v2';
 const PROFILE_KEY = 'greenroom_profile_v2';
@@ -143,10 +144,26 @@ const sampleCategories = [
 function loadStoredSessions() {
   try {
     const val = localStorage.getItem(STORAGE_KEY);
-    return val ? JSON.parse(val) : [];
+    const parsed = val ? JSON.parse(val) : [];
+    if (parsed && parsed.length > 0) return parsed;
   } catch {
-    return [];
+    // fallback
   }
+  return [
+    {
+      id: 'sess_live_default',
+      company: 'Cognizant',
+      role: 'Java Developer Fresher',
+      interviewType: 'technical',
+      mode: 'live',
+      resumeText: defaultProfile.resumeText,
+      jobDescription: defaultProfile.jobDescription,
+      companyCulture: defaultProfile.companyCulture,
+      status: 'Active',
+      createdAt: new Date().toISOString(),
+      qaPairs: [],
+    },
+  ];
 }
 
 function loadProfile() {
@@ -175,171 +192,13 @@ function formatDuration(totalSeconds) {
 
 // Intelligent dynamic AI engine tailored to the question, resume, and role
 function generateSmartAnswer({ mode, session, question, candidateAnswer }) {
-  const qLower = (question || '').toLowerCase();
-  const role = session?.role || 'Software Developer';
-  const company = session?.company || 'the target company';
-  const resume = session?.resumeText || 'Built REST APIs, structured clean code, and debugged issues';
-
-  if (mode === 'live') {
-    // 1. JAVA GARBAGE COLLECTION / MEMORY
-    if (qLower.includes('garbage collection') || qLower.includes('memory leak') || qLower.includes('jvm')) {
-      return {
-        headline_answer:
-          'Java Garbage Collection automatically reclaims heap memory occupied by unreachable objects, and I prevent memory leaks by closing unmanaged I/O resources, avoiding static collections, and analyzing heap dumps.',
-        bullets: [
-          'Heap is divided into Young Generation (Eden, S0, S1) and Old (Tenured) Generation.',
-          'Minor GC cleans short-lived objects quickly in Young Gen; surviving objects promote to Old Gen for Major/Full GC.',
-          'Common collectors: G1 GC (default in modern Java) provides balanced low-pause throughput; ZGC for ultra-low latency.',
-          'Memory leak prevention: Always close DB connections/Streams via try-with-resources and eliminate unclosed event listeners.',
-        ],
-        tradeoff: 'Low-pause collectors like ZGC consume slightly higher CPU overhead in exchange for sub-millisecond pauses.',
-        full_answer:
-          `In Java, memory is divided into the Stack (for thread frames and local primitives) and the Heap (for object allocations). The Garbage Collector identifies unreferenced objects starting from GC Roots. In my projects, I use modern G1 GC for predictable throughput, and I safeguard against memory leaks by using try-with-resources for all JDBC/file handles, clearing stale cache entries, and monitoring memory with JConsole or VisualVM.`,
-        note: 'Co-Pilot guidance tailored for Java Developer profile.',
-      };
-    }
-
-    // 2. HASHMAP / CONCURRENT HASHMAP / COLLECTIONS
-    if (qLower.includes('hashmap') || qLower.includes('concurrenthashmap') || qLower.includes('collection')) {
-      return {
-        headline_answer:
-          'HashMap is non-synchronized and not thread-safe, whereas ConcurrentHashMap provides high-concurrency thread safety using segmented bucket-level locking and CAS operations without locking the entire map.',
-        bullets: [
-          'HashMap allows one null key and null values; ConcurrentHashMap prohibits null keys and values.',
-          'HashMap can cause infinite loops or race conditions if modified concurrently across threads.',
-          'ConcurrentHashMap uses Lock Striping (CAS + synchronized blocks on individual bucket heads) for high read/write throughput.',
-          'In Java 8+, collision chains convert from linked lists to Red-Black Trees (TreeNode) when bucket size exceeds 8 (TREEIFY_THRESHOLD).',
-        ],
-        tradeoff: 'ConcurrentHashMap has slightly higher memory overhead per entry than a basic HashMap in single-threaded scenarios.',
-        full_answer:
-          `When choosing between them, HashMap is ideal for single-threaded or thread-confined local operations where performance is paramount. For shared multi-threaded caches or state across web request threads, I always use ConcurrentHashMap because it allows multiple concurrent reader threads without locking, and isolates writes to specific buckets.`,
-        note: 'Co-Pilot guidance tailored for Java Collections.',
-      };
-    }
-
-    // 3. SPRING BOOT / DEPENDENCY INJECTION / REST API
-    if (qLower.includes('spring') || qLower.includes('dependency injection') || qLower.includes('autowired') || qLower.includes('rest api')) {
-      return {
-        headline_answer:
-          'I design Spring Boot REST APIs using layered architecture (Controller → Service → Repository) and favor Constructor Injection for immutability, testability, and explicit dependency contracts.',
-        bullets: [
-          'Controller layer handles HTTP request validation, status codes, and DTO mappings.',
-          'Service layer encapsulates core business logic, validation rules, and @Transactional boundaries.',
-          'Repository layer extends JpaRepository for type-safe database queries with pagination.',
-          'Constructor Injection prevents circular dependencies at startup and facilitates easy JUnit/Mockito testing.',
-        ],
-        tradeoff: 'Field injection (@Autowired on fields) is quick to type but hides dependencies and makes isolated unit testing harder.',
-        full_answer:
-          `In my Spring Boot projects, I enforce separation of concerns: Controllers validate requests with @Valid and return standard ResponseEntity payloads. The Service layer executes business workflows wrapped in declarative transactions. I always use Constructor Injection with Lombok @RequiredArgsConstructor to guarantee immutability and allow fast unit testing without booting the entire Spring ApplicationContext.`,
-        note: 'Co-Pilot guidance tailored for Spring Boot & REST APIs.',
-      };
-    }
-
-    // 4. SQL QUERY OPTIMIZATION / DATABASE / INDEXING
-    if (qLower.includes('sql') || qLower.includes('query') || qLower.includes('index') || qLower.includes('database') || qLower.includes('nosql')) {
-      return {
-        headline_answer:
-          'I optimize slow SQL queries by analyzing EXPLAIN query execution plans, indexing high-cardinality filter and join columns, avoiding SELECT *, and batching transactional writes.',
-        bullets: [
-          'Run EXPLAIN ANALYZE to identify full table scans and heavy disk sorts.',
-          'Create B-Tree composite indexes matching WHERE, JOIN, and ORDER BY clause order (Leftmost prefix rule).',
-          'Eliminate N+1 query problems in JPA using JOIN FETCH or Entity Graphs.',
-          'Implement database connection pooling (HikariCP) and pagination for large result sets.',
-        ],
-        tradeoff: 'Adding too many indexes speeds up read queries but degrades write (INSERT/UPDATE) throughput and increases storage.',
-        full_answer:
-          `When debugging database latency, I first inspect the execution plan using EXPLAIN to spot full table scans. I ensure foreign keys and frequently filtered columns have appropriate B-Tree indexes. In Spring Boot JPA, I guard against N+1 query overhead by using JOIN FETCH or custom DTO projections, and apply database pagination (Pageable) so we never load unbounded result sets into heap memory.`,
-        note: 'Co-Pilot guidance for Database & SQL optimization.',
-      };
-    }
-
-    // 5. BEHAVIORAL / CHALLENGING BUG / DEADLINE
-    if (qLower.includes('bug') || qLower.includes('challenge') || qLower.includes('difficult') || qLower.includes('deadline')) {
-      return {
-        headline_answer:
-          'When facing a critical bug under a tight deadline, I isolated the issue using structured logs, reproduced it in a local sandbox, implemented a verified fix with regression tests, and communicated transparently.',
-        bullets: [
-          'Situation: Discovered an intermittent 500 error during high-concurrency order submissions near release.',
-          'Task: Identify the root cause without delaying the scheduled sprint deployment.',
-          'Action: Checked server log traces, pinpointed a thread-unsafe date formatter in the service layer, and swapped it for thread-safe Java Time Instant.',
-          'Result: Successfully passed automated regression test suite, deployed on schedule with 0 production incidents.',
-        ],
-        tradeoff: 'Prioritized a surgical, low-risk fix first, followed by a post-sprint refactor for broader architectural cleanup.',
-        full_answer:
-          `In a recent project, we encountered intermittent data corruption during high-traffic testing. I immediately reproduced the scenario using concurrent mock threads and identified that a shared utility was holding mutable state across threads. I refactored the utility to use stateless immutable Java Time classes, added unit tests to lock down the behavior, and verified with QA. We shipped on schedule, and I documented the root cause in our team wiki.`,
-        note: 'STAR Method Arc formatted for behavioral interview.',
-      };
-    }
-
-    // 6. BEHAVIORAL / TEAM CONFLICT / DISAGREEMENT
-    if (qLower.includes('disagree') || qLower.includes('conflict') || qLower.includes('teammate') || qLower.includes('code review')) {
-      return {
-        headline_answer:
-          'I approach disagreements by separating personal opinions from project objectives, discussing concrete benchmarks and data, and seeking alignment on what best serves the user and codebase health.',
-        bullets: [
-          'Listen actively to understand the other engineer\'s perspective and technical trade-offs.',
-          'Focus discussion on objective criteria: maintainability, performance benchmarks, and delivery deadlines.',
-          'Propose a quick proof-of-concept (POC) to test competing approaches empirically if needed.',
-          'Once a team decision is reached, commit 100% to clean implementation without friction.',
-        ],
-        tradeoff: 'Taking time for a 30-minute alignment discussion slightly delays initial coding but prevents costly rework later.',
-        full_answer:
-          `During a sprint planning session, a peer and I had different views on whether to use synchronous REST calls or an asynchronous queue for notification delivery. Instead of debating in circles, I mapped out our expected message throughput and latency constraints. We agreed that for our current phase, a lightweight async event model offered better fault tolerance. We documented the decision in our ADR (Architecture Decision Record) and delivered smoothly.`,
-        note: 'STAR Method Arc for team collaboration.',
-      };
-    }
-
-    // 7. INTRODUCE YOURSELF / TELL ME ABOUT YOURSELF
-    if (qLower.includes('tell me about yourself') || qLower.includes('introduce') || qLower.includes('background')) {
-      return {
-        headline_answer:
-          `I am a passionate software developer specializing in backend Java and Spring Boot architectures, with hands-on experience building clean RESTful services, database optimizations, and scalable systems.`,
-        bullets: [
-          'Strong foundation in Core Java (OOP, Collections, Multithreading, Concurrency, and Stream API).',
-          'Experienced in developing production-ready REST APIs using Spring Boot, Hibernate/JPA, and SQL.',
-          'Focused on code quality, automated unit testing with JUnit/Mockito, and clean modular design.',
-          'Enthusiastic about collaborating in Agile teams, solving backend performance bottlenecks, and continuous learning.',
-        ],
-        tradeoff: 'Balancing fast feature prototyping with thorough unit test coverage and clean documentation.',
-        full_answer:
-          `To give you a brief overview: I am a ${role} with strong hands-on experience in Java, Spring Boot, and relational databases. In my work, I've developed RESTful APIs with secure authentication, optimized database query execution, and collaborated with QA and product teams to deliver features on schedule. I love digging into system performance and clean architecture, and I'm very excited about the opportunity at ${company} to contribute to high-impact projects.`,
-        note: 'Candidate elevator pitch.',
-      };
-    }
-
-    // 8. WHY THIS COMPANY
-    if (qLower.includes('why do you want') || qLower.includes('why this company') || qLower.includes('why join')) {
-      return {
-        headline_answer:
-          `I want to join ${company} because of your engineering excellence, culture of continuous innovation, and the opportunity to work on scalable systems that deliver tangible value to global clients.`,
-        bullets: [
-          `Strong alignment with ${company}'s focus on engineering best practices and customer impact.`,
-          'Opportunity to contribute my Java backend expertise while learning from experienced senior mentors.',
-          'Excitement about tackling complex domain problems, high-volume transactions, and microservices.',
-          'A collaborative culture where initiative, clean code, and engineering curiosity are celebrated.',
-        ],
-        tradeoff: 'Choosing a high-standard engineering environment where accountability and learning curves are high.',
-        full_answer:
-          `I have been following ${company}'s growth and reputation for building resilient enterprise platforms. My technical background in Java, Spring Boot, and API architecture aligns directly with the requirements for this role. I want to be part of a team where I can solve real technical challenges, adhere to clean coding standards, and grow into a strong technical contributor alongside great engineers.`,
-        note: 'Company alignment response.',
-      };
-    }
-
-    // GENERAL TECHNICAL / DEFAULT
-    return {
-      headline_answer:
-        `For this requirement at ${company}, I clarify the constraints, isolate the core domain logic, and implement a modular, well-tested solution.`,
-      bullets: [
-        'Clarify functional and non-functional requirements (latency, concurrency, data volume).',
-        'Apply standard design patterns (Factory, Strategy, Repository) to keep modules loosely coupled.',
-        'Ensure comprehensive unit test coverage with JUnit/Mockito before deployment.',
-        'Incorporate structured logging and metrics for observability in production.',
-      ],
-      tradeoff: 'Balancing upfront architectural extensibility with shipping minimal viable solutions rapidly.',
-      full_answer:
-        `When addressing this scenario for ${role} at ${company}, I break the problem down into distinct stages: first, clarifying edge cases and throughput targets; second, implementing clean domain models with verified validation rules; and finally, establishing automated tests and health checks to ensure long-term reliability.`,
-      note: 'Dynamic Co-Pilot response based on active session context.',
-    };
+  if (mode === 'live' || !mode) {
+    return findMatchingAnswer({
+      question,
+      session,
+      candidateAnswer,
+      mode: 'live',
+    });
   }
 
   // PRACTICE MODE EVALUATION
@@ -362,7 +221,7 @@ function generateSmartAnswer({ mode, session, question, candidateAnswer }) {
     weaknesses.push('Answer is too brief. Expand with concrete details and metrics (STAR method).');
   }
 
-  if (/java|spring|sql|api|cache|thread|test|database|docker/i.test(candidateAnswer || '')) {
+  if (/java|spring|sql|api|cache|thread|test|database|docker|rest/i.test(candidateAnswer || '')) {
     strengths.push('Included relevant domain keywords matching the role requirements.');
   } else {
     weaknesses.push('Incorporate more specific technical tools, libraries, or architectural terms.');
@@ -372,9 +231,10 @@ function generateSmartAnswer({ mode, session, question, candidateAnswer }) {
     weaknesses.push('Quantify the final result (e.g. "reduced latency by 20%", "shipped 2 days ahead of schedule").');
   }
 
-  const rewritten = candidateAnswer && candidateAnswer.length > 15
-    ? `In my previous project, I addressed this directly: ${candidateAnswer.trim().replace(/\.$/, '')}. This ensured smooth reliability, verified test coverage with JUnit, and allowed our team to deliver on time.`
-    : `In my previous experience with Java and Spring Boot, I approached this systematically: first diagnosing the core requirement, implementing a decoupled service layer, and verifying with integration tests to ensure 99.9% uptime.`;
+  const rewritten =
+    candidateAnswer && candidateAnswer.length > 15
+      ? `In my previous project, I addressed this directly: ${candidateAnswer.trim().replace(/\.$/, '')}. This ensured smooth reliability, verified test coverage with JUnit, and allowed our team to deliver on time.`
+      : `In my previous experience with Java and Spring Boot, I approached this systematically: first diagnosing the core requirement, implementing a decoupled service layer, and verifying with integration tests to ensure 99.9% uptime.`;
 
   return {
     score,
@@ -390,15 +250,24 @@ export default function App() {
   const [profile, setProfile] = useState(loadProfile);
   const [audioSettings, setAudioSettings] = useState(loadAudioSettings);
   const [sessions, setSessions] = useState(loadStoredSessions);
-  const [activeSessionId, setActiveSessionId] = useState(null);
+  const [activeSessionId, setActiveSessionId] = useState(() => {
+    const init = loadStoredSessions();
+    return init[0]?.id || null;
+  });
   const [createMode, setCreateMode] = useState('live'); // 'live' | 'practice'
   const [audioSource, setAudioSource] = useState('mic'); // 'mic' | 'system'
   const [showSetup, setShowSetup] = useState(false);
-  const [currentQuestion, setCurrentQuestion] = useState('');
+  const [currentQuestion, setCurrentQuestion] = useState(() => sampleCategories[0].questions[0]);
   const [manualQuestion, setManualQuestion] = useState('');
   const [liveEditSpeech, setLiveEditSpeech] = useState('');
   const [candidateSpokenAnswer, setCandidateSpokenAnswer] = useState('');
-  const [cue, setCue] = useState(null);
+  const [cue, setCue] = useState(() =>
+    generateSmartAnswer({
+      mode: 'live',
+      session: defaultProfile,
+      question: sampleCategories[0].questions[0],
+    })
+  );
   const [practiceEvaluation, setPracticeEvaluation] = useState(null);
   const [errorText, setErrorText] = useState('');
   const [successToast, setSuccessToast] = useState('');
@@ -457,14 +326,37 @@ export default function App() {
       const cleanQ = detectedText.trim();
       setCurrentQuestion(cleanQ);
 
-      if (createMode === 'live') {
+      let targetSession = activeSession;
+      if (!targetSession) {
+        const newSession = {
+          id: `session-${Date.now()}`,
+          company: profile.company || 'Cognizant',
+          role: profile.role || 'Java Developer Fresher',
+          questionType: profile.interviewType || 'technical',
+          resumeText: profile.resumeText,
+          jobDescription: profile.jobDescription,
+          companyCulture: profile.companyCulture,
+          createdAt: new Date().toISOString(),
+          duration: 0,
+          status: 'Active',
+          mode: createMode || 'live',
+          qaPairs: [],
+        };
+        targetSession = newSession;
+        setActiveSessionId(newSession.id);
+        setSessions((prev) => [newSession, ...prev]);
+        setShowSetup(false);
+        setNav('sessions');
+      }
+
+      if (createMode === 'live' || !createMode) {
         setIsGenerating(true);
         setErrorText('');
 
         try {
           const payload = generateSmartAnswer({
             mode: 'live',
-            session: activeSession || profile,
+            session: targetSession || profile,
             question: cleanQ,
             candidateAnswer: '',
           });
@@ -478,15 +370,13 @@ export default function App() {
             timestamp: new Date().toISOString(),
           };
 
-          if (activeSession) {
-            setSessions((prev) =>
-              prev.map((session) =>
-                session.id === activeSession.id
-                  ? { ...session, qaPairs: [...(session.qaPairs || []), nextPair] }
-                  : session
-              )
-            );
-          }
+          setSessions((prev) =>
+            prev.map((session) =>
+              session.id === targetSession.id
+                ? { ...session, qaPairs: [...(session.qaPairs || []), nextPair] }
+                : session
+            )
+          );
         } catch (err) {
           setErrorText(err.message || 'Failed to generate answer.');
         } finally {
@@ -751,6 +641,27 @@ export default function App() {
 
   const toggleMic = async () => {
     if (!micEnabled) {
+      if (!activeSessionId) {
+        const newSession = {
+          id: `session-${Date.now()}`,
+          company: profile.company || 'Cognizant',
+          role: profile.role || 'Java Developer Fresher',
+          questionType: profile.interviewType || 'technical',
+          resumeText: profile.resumeText,
+          jobDescription: profile.jobDescription,
+          companyCulture: profile.companyCulture,
+          createdAt: new Date().toISOString(),
+          duration: 0,
+          status: 'Active',
+          mode: createMode || 'live',
+          qaPairs: [],
+        };
+        setActiveSessionId(newSession.id);
+        setSessions((prev) => [newSession, ...prev]);
+        setShowSetup(false);
+        setNav('sessions');
+      }
+
       if (permissionStatus !== 'granted') {
         const stream = await requestPermission();
         if (stream) {
@@ -1364,20 +1275,35 @@ export default function App() {
                           )}
                         </div>
 
-                        {/* Quick Question Selector Chips */}
-                        <div className="mt-3">
-                          <div className="text-[11px] font-semibold text-slate-400 mb-1.5">
-                            Quick Test Questions (Click to generate answer):
+                        {/* Quick Question Selector Chips & 1-Click Simulation */}
+                        <div className="mt-4 border-t border-white/5 pt-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-400">
+                              ⚡ 1-Click Practice & Simulation Questions:
+                            </span>
+                            <span className="text-[10px] text-slate-400 font-mono">Instant AI generation</span>
                           </div>
-                          <div className="flex flex-wrap gap-1.5">
-                            {sampleCategories[0].questions.slice(0, 4).map((sq, i) => (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            {[
+                              { text: "Explain HashMap internals & Java 8 Red-Black Tree collision handling", tag: "Java Core" },
+                              { text: "How Java Garbage Collection works and how to prevent memory leaks", tag: "JVM & Memory" },
+                              { text: "Spring Boot Dependency Injection under the hood (@Autowired vs Constructor)", tag: "Spring Boot" },
+                              { text: "How to solve N+1 query problem in Spring Data JPA & Hibernate", tag: "Hibernate / ORM" },
+                              { text: "How to optimize slow SQL queries using EXPLAIN & B-Tree indexing", tag: "Database" },
+                              { text: "Tell me about a challenging production bug you solved under tight deadlines", tag: "STAR Behavioral" },
+                              { text: "Tell me about yourself and your background in Java & Spring development", tag: "Elevator Pitch" },
+                              { text: "Microservices vs Monolith: Service Discovery, API Gateway & Circuit Breakers", tag: "System Design" },
+                            ].map((item, idx) => (
                               <button
-                                key={i}
+                                key={idx}
                                 type="button"
-                                onClick={() => handleDetectedQuestion(sq)}
-                                className="rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-slate-300 hover:bg-emerald-500/20 hover:text-emerald-300 hover:border-emerald-500/30 text-left transition"
+                                onClick={() => handleDetectedQuestion(item.text)}
+                                className="flex items-center justify-between gap-2 rounded-xl border border-white/10 bg-white/5 p-2.5 text-xs text-slate-200 hover:border-emerald-500/40 hover:bg-emerald-950/30 hover:text-emerald-300 transition text-left group"
                               >
-                                {sq.length > 48 ? sq.slice(0, 48) + '…' : sq}
+                                <span className="truncate font-medium">{item.text}</span>
+                                <span className="shrink-0 rounded-md bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-400 group-hover:bg-emerald-500/20">
+                                  {item.tag}
+                                </span>
                               </button>
                             ))}
                           </div>
