@@ -193,9 +193,29 @@ function buildLocalPracticeResult({ questionType, question, candidateAnswer }) {
 }
 
 async function callAnthropic({ apiKey, prompt }) {
+  // Prefer proxying through a local backend at /api/suggest if available.
+  try {
+    const proxyRes = await fetch('/api/suggest', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt }),
+    });
+
+    if (proxyRes.ok) {
+      const json = await proxyRes.json();
+      // Server already returns a parsed suggestion object; stringify so callers can JSON.parse as before.
+      return JSON.stringify(json);
+    }
+    // fallthrough to direct call if proxy returns error
+    console.warn('[callAnthropic] Proxy /api/suggest responded with status', proxyRes.status);
+  } catch (e) {
+    console.warn('[callAnthropic] Proxy request failed, falling back to direct call:', e?.message || e);
+  }
+
+  // Direct client-side call as a fallback (requires user-provided key or VITE_ANTHROPIC_API_KEY)
   const key = apiKey || import.meta.env.VITE_ANTHROPIC_API_KEY;
   if (!key) {
-    throw new Error('No API key');
+    throw new Error('No API key and proxy unavailable');
   }
 
   const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -492,25 +512,23 @@ function App() {
   return (
     <div className="min-h-screen bg-[#14171F] text-slate-100">
       <div className="mx-auto max-w-[1600px] p-3 md:p-6">
-        <header className="flex items-center justify-between rounded-t-2xl border border-white/10 bg-[#F6F6F2]/90 px-5 py-4 text-slate-900 shadow-soft">
+        <header className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-brand-400 to-brand-600">
-              <span className="h-3 w-3 rounded-full bg-[#0d1f1a]" />
+            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-[linear-gradient(135deg,var(--brand),var(--brand-dark))]">
+              <span className="h-2 w-2 rounded-full bg-[#072018]" />
             </div>
-            <div className="text-2xl font-bold tracking-[-0.05em]">Parakeet <span className="font-black">AI</span></div>
+            <div className="text-lg font-semibold tracking-[-0.03em]">Greenroom</div>
           </div>
 
-          <nav className="hidden items-center gap-8 text-sm font-medium text-slate-700 md:flex">
+          <nav className="hidden items-center gap-6 text-sm font-medium text-gray-600 md:flex">
             <a href="#" className="hover:text-slate-900">Features</a>
             <a href="#" className="hover:text-slate-900">Reviews</a>
             <a href="#" className="hover:text-slate-900">Privacy</a>
           </nav>
 
           <div className="flex items-center gap-2">
-            <span className="rounded-full border border-brand-500/40 bg-brand-500/10 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.08em] text-brand-700">
-              Free AI Helper
-            </span>
-            <button className="rounded-xl border border-slate-300 bg-white/70 px-4 py-2 text-sm font-semibold text-slate-800">
+            <span className="brand-badge">Free AI Helper</span>
+            <button className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700">
               Dashboard
             </button>
           </div>
