@@ -3,56 +3,206 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Greenroom</title>
+    <title>ParakeetAI Dashboard</title>
     <link rel="stylesheet" href="./src/styles/main.css" />
   </head>
   <body>
-    <div class="app-shell">
-      <header class="topbar">
-        <div class="brand-wrap">
-          <span class="brand-title">Greenroom</span>
-          <span class="brand-subtitle">AI interview co-pilot</span>
+    <div class="page-shell">
+      <header class="top-nav">
+        <div class="logo-wrap">
+          <div class="logo-mark">
+            <span class="logo-inner"></span>
+          </div>
+          <div class="logo-text">Parakeet <span>AI</span></div>
         </div>
-        <div id="statusPill" class="status-pill">Ready</div>
+
+        <nav class="top-links" aria-label="Main navigation">
+          <a href="#">Features</a>
+          <a href="#">Reviews</a>
+          <a href="#">Privacy</a>
+          <a href="#">Pricing</a>
+        </nav>
+
+        <button type="button" class="dashboard-pill">Dashboard</button>
       </header>
 
-      <main class="layout">
-        <section id="setupPanel" class="panel"></section>
-        <section id="sessionPanel" class="panel session-panel">
-          <div class="panel-header">
-            <h2>Live interview session</h2>
-            <span id="modeBadge" class="chip">Ready</span>
-          </div>
-
-          <div class="session-summary">
-            <div class="stat">
-              <small>Questions</small>
-              <strong id="questionCount">0</strong>
+      <div class="app-layout">
+        <aside class="sidebar">
+          <div class="mini-brand">
+            <div class="mini-logo">
+              <span class="mini-dot"></span>
             </div>
-            <div class="stat">
-              <small>Mode</small>
-              <strong id="modeLabel">Mic</strong>
+            <div class="mini-name">Parakeet <span>AI</span></div>
+          </div>
+
+          <div class="workspace-title">Workspace</div>
+
+          <nav class="side-nav" aria-label="Workspace navigation">
+            <button type="button" class="side-link active">
+              <span class="side-icon">◔</span>
+              <span>Call Sessions</span>
+            </button>
+            <button type="button" class="side-link">
+              <span class="side-icon">▣</span>
+              <span>CVs &amp; Resumes</span>
+            </button>
+            <button type="button" class="side-link">
+              <span class="side-icon">▤</span>
+              <span>Documents</span>
+            </button>
+          </nav>
+
+          <div class="side-section">
+            <div class="support-label">Support</div>
+            <button type="button" class="side-link compact">
+              <span class="side-icon">◍</span>
+              <span>Tutorials</span>
+            </button>
+            <button type="button" class="side-link compact">
+              <span class="side-icon">◌</span>
+              <span>Support Chat</span>
+            </button>
+          </div>
+
+          <div class="plan-box">
+            <div class="plan-head">Free Plan</div>
+            <p>Start a 10 min free session or buy credits for full-length calls.</p>
+            <button type="button" class="upgrade-btn">Upgrade</button>
+          </div>
+
+          <div class="bottom-links">
+            <button type="button" class="bottom-link">
+              <span>☼</span>
+              <span>Theme</span>
+              <span class="meta">Auto</span>
+            </button>
+            <button type="button" class="bottom-link">
+              <span>▣</span>
+              <span>Open Desktop App</span>
+            </button>
+            <button type="button" class="bottom-link danger">
+              <span>↩</span>
+              <span>Log Out</span>
+            </button>
+          </div>
+
+          <div class="user-box">
+            <div class="user-avatar">AS</div>
+            <div class="user-copy">
+              <div class="user-name">ASISH RANJAN SAHU</div>
+              <div class="user-email">asishranjansahu2003@gmail.com</div>
             </div>
-            <div class="stat">
-              <small>Role</small>
-              <strong id="roleLabel">N/A</strong>
+          </div>
+        </aside>
+
+        <main class="workspace-panel">
+          <div class="workspace-head">
+            <div class="workspace-title-wrap">
+              <div class="page-title">Call Sessions</div>
+              <p>Prepare for calls and review past sessions.</p>
             </div>
+            <button type="button" class="create-session-btn">+ Create Session</button>
           </div>
 
-          <div class="controls">
-            <button id="captureBtn" class="btn btn-secondary">Force capture</button>
-            <button id="stopBtn" class="btn btn-danger">Stop</button>
-          </div>
+          <div class="content-grid">
+            <section class="session-pane">
+              <div class="tab-bar">
+                <div class="tabs">
+                  <button type="button" class="tab active">All</button>
+                  <button type="button" class="tab">Active</button>
+                  <button type="button" class="tab">Ended</button>
+                </div>
+                <div class="count-text">11 Sessions</div>
+              </div>
 
-          <div class="transcript-box">
-            <div class="label">Current question</div>
-            <div id="currentQuestion">Listening for the interviewer’s next question…</div>
-          </div>
+              <div class="search-row">
+                <div class="search-box">
+                  <span class="search-icon">⌕</span>
+                  <input type="text" placeholder="Search by title or description" />
+                  <span class="keycap">⌘K</span>
+                </div>
+                <div class="view-controls">
+                  <button type="button" class="view-btn">▦</button>
+                  <button type="button" class="view-btn">☰</button>
+                </div>
+              </div>
 
-          <div id="cueCard"></div>
-          <div id="historyPanel"></div>
-        </section>
-      </main>
+              <div class="glass-panel">
+                <div class="session-table">
+                  <div class="table-head">
+                    <div class="table-row table-header-row">
+                      <span>Session</span>
+                      <span>Mode</span>
+                      <span>Duration</span>
+                      <span>Credits Used</span>
+                      <span>Created</span>
+                      <span>Save Transcript</span>
+                      <span>State</span>
+                    </div>
+                  </div>
+
+                  <div class="table-body">
+                    <div class="table-row">
+                      <div class="cell session-cell">
+                        <div class="company-icon">A</div>
+                        <div class="company-copy">
+                          <div class="company-name">Anthropic</div>
+                          <div class="company-role">Product Designer</div>
+                        </div>
+                      </div>
+                      <div class="cell mode-cell">Interview</div>
+                      <div class="cell">24 mins 46 secs</div>
+                      <div class="cell">0.8</div>
+                      <div class="cell">Mar 22, 2026</div>
+                      <div class="cell save-cell">No</div>
+                      <div class="cell state-cell"><span class="state-badge ended">Ended</span></div>
+                    </div>
+
+                    <div class="table-row">
+                      <div class="cell session-cell">
+                        <div class="company-icon blue">G</div>
+                        <div class="company-copy">
+                          <div class="company-name">Google</div>
+                          <div class="company-role">ML Engineer</div>
+                        </div>
+                      </div>
+                      <div class="cell mode-cell">Interview</div>
+                      <div class="cell">41 mins 27 secs</div>
+                      <div class="cell">2</div>
+                      <div class="cell">Mar 30, 2026</div>
+                      <div class="cell save-cell">Yes</div>
+                      <div class="cell state-cell"><span class="state-badge ended">Ended</span></div>
+                    </div>
+
+                    <div class="table-row active-row">
+                      <div class="cell session-cell">
+                        <div class="company-icon green">C</div>
+                        <div class="company-copy">
+                          <div class="company-name">Cognizant</div>
+                          <div class="company-role">Java Developer Fresher</div>
+                        </div>
+                      </div>
+                      <div class="cell mode-cell">Interview</div>
+                      <div class="cell">1m 32s</div>
+                      <div class="cell">-</div>
+                      <div class="cell">Sep 2, 2026</div>
+                      <div class="cell save-cell">Yes</div>
+                      <div class="cell state-cell"><span class="state-badge live">Live</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <aside class="action-panel">
+              <button type="button" class="action-btn primary">Join Session</button>
+              <button type="button" class="action-btn">Start Session</button>
+              <button type="button" class="action-btn">Start Session</button>
+              <button type="button" class="action-btn muted">View Transcript</button>
+            </aside>
+          </div>
+        </main>
+      </div>
     </div>
 
     <script type="module" src="./src/main.js"></script>

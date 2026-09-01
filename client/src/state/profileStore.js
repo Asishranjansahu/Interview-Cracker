@@ -12,5 +12,6 @@ export function createProfile(values = {}) {
     question_type: values.question_type || values.interview_type || 'behavioral',
     mode: values.mode || 'live',
     candidate_answer: values.candidate_answer || '',
+    stealthMode: Boolean(values.stealthMode),
   };
 }
