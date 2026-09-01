@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Parakeet-Style Interview Coach</title>
+    <style>
+      :root {
+        --bg: #0b1020;
+        --panel: rgba(17, 24, 39, 0.82);
+        --panel-border: rgba(148, 163, 184, 0.18);
+        --text: #edf2ff;
+        --muted: #a5b4cf;
+        --accent: #8b5cf6;
+        --accent-2: #7c3aed;
+        --accent-3: #c084fc;
+        --success: #34d399;
+        --warn: #fbbf24;
+        --danger: #fb7185;
+      }
+
+      * { box-sizing: border-box; }
+      html, body {
+        margin: 0;
+        min-height: 100%;
+        font-family: Inter, "Segoe UI", sans-serif;
+        background:
+          radial-gradient(circle at 15% 20%, rgba(139, 92, 246, 0.24), transparent 28%),
+          radial-gradient(circle at 85% 15%, rgba(96, 165, 250, 0.24), transparent 28%),
+          linear-gradient(180deg, #070d18, var(--bg));
+        color: var(--text);
+      }
+
+      body {
+        min-height: 100vh;
+        padding: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .app-shell {
+        width: min(1180px, 100%);
+      }
+
+      .topbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 18px;
+      }
+
+      .brand {
+        font-size: clamp(1.5rem, 2vw, 2.15rem);
+        font-weight: 800;
+        letter-spacing: -0.04em;
+      }
+
+      .brand .light {
+        color: #d9c7ff;
+      }
+
+      .brand .strong {
+        background: linear-gradient(135deg, #d8b4fe, #a5b4fc);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+
+      .status-pill {
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: rgba(139, 92, 246, 0.12);
+        border: 1px solid rgba(168, 85, 247, 0.28);
+        color: #e9d5ff;
+        font-size: 0.76rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: 430px minmax(0, 1fr);
+        gap: 20px;
+      }
+
+      .panel {
+        background: rgba(17, 24, 39, 0.72);
+        border: 1px solid var(--panel-border);
+        border-radius: 24px;
+        box-shadow: 0 24px 60px rgba(2, 6, 23, 0.55);
+        backdrop-filter: blur(8px);
+      }
+
+      .form-panel {
+        padding: 24px 22px 18px;
+      }
+
+      .session-panel {
+        display: none;
+        padding: 18px 20px 20px;
+      }
+
+      .panel-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 18px;
+      }
+
+      .panel-header h2 {
+        margin: 0;
+        font-size: 1.07rem;
+        letter-spacing: 0.01em;
+      }
+
+      .chip {
+        font-size: 0.7rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        padding: 7px 10px;
+        border-radius: 999px;
+        background: rgba(52, 211, 153, 0.12);
+        color: var(--success);
+        border: 1px solid rgba(52, 211, 153, 0.18);
+      }
+
+      .form-grid {
+        display: grid;
+        gap: 14px;
+      }
+
+      .form-group {
+        display: grid;
+        gap: 8px;
+      }
+
+      label {
+        color: var(--muted);
+        font-size: 0.76rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      input, textarea, select, button {
+        font: inherit;
+      }
+
+      input, textarea, select {
+        width: 100%;
+        background: rgba(15, 23, 42, 0.68);
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        border-radius: 12px;
+        color: var(--text);
+        padding: 11px 12px;
+        outline: none;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+      }
+
+      input:focus, textarea:focus, select:focus {
+        border-color: rgba(168, 85, 247, 0.7);
+        box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.12);
+      }
+
+      textarea {
+        min-height: 94px;
+        resize: vertical;
+      }
+
+      .button-row {
+        display: grid;
+        gap: 10px;
+        margin-top: 8px;
+      }
+
+      .btn {
+        border: 0;
+        border-radius: 12px;
+        padding: 12px 16px;
+        font-weight: 800;
+        cursor: pointer;
+        transition: transform 0.15s ease, opacity 0.15s ease;
+      }
+      .btn:hover { transform: translateY(-1px); }
+      .btn:active { transform: translateY(0); }
+
+      .btn-primary {
+        background: linear-gradient(135deg, var(--accent-3), var(--accent));
+        color: white;
+      }
+
+      .btn-secondary {
+        background: rgba(148, 163, 184, 0.08);
+        border: 1px solid rgba(148, 163, 184, 0.15);
+        color: var(--text);
+      }
+
+      .small-note {
+        color: var(--muted);
+        font-size: 0.75rem;
+        margin-top: 10px;
+      }
+
+      .session-summary {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+        margin-bottom: 18px;
+      }
+
+      .stat {
+        background: rgba(15, 23, 42, 0.75);
+        border: 1px solid rgba(148, 163, 184, 0.14);
+        border-radius: 14px;
+        padding: 12px 14px;
+      }
+
+      .stat small {
+        display: block;
+        color: var(--muted);
+        margin-bottom: 6px;
+        font-size: 0.66rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .stat strong {
+        font-size: 1rem;
+      }
+
+      .controls {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 18px;
+      }
+
+      .controls .btn {
+        flex: 1;
+      }
+
+      .btn-danger {
+        background: rgba(251, 113, 133, 0.08);
+        border: 1px solid rgba(251, 113, 133, 0.2);
+        color: #fecdd3;
+      }
+
+      .transcript-box, .history-box, #greenroom-root {
+        background: rgba(15, 23, 42, 0.72);
+        border: 1px solid rgba(148, 163, 184, 0.15);
+        border-radius: 16px;
+        padding: 16px;
+      }
+
+      .transcript-box {
+        margin-bottom: 18px;
+      }
+
+      .label {
+        color: var(--muted);
+        font-size: 0.7rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        margin-bottom: 8px;
+      }
+
+      #currentQuestion {
+        font-size: 1.06rem;
+        line-height: 1.6;
+      }
+
+      #greenroom-root {
+        min-height: 290px;
+      }
+
+      .history-box {
+        margin-top: 18px;
+      }
+
+      #historyList {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: grid;
+        gap: 10px;
+      }
+
+      #historyList li {
+        background: rgba(17, 24, 39, 0.85);
+        border: 1px solid rgba(148, 163, 184, 0.12);
+        border-radius: 12px;
+        padding: 12px 14px;
+      }
+
+      .history-q {
+        font-weight: 700;
+        margin-bottom: 6px;
+      }
+
+      .history-a {
+        color: var(--muted);
+        line-height: 1.5;
+        font-size: 0.94rem;
+      }
+
+      .floating-note {
+        text-align: center;
+        color: #cbd5e1;
+        font-size: 0.9rem;
+        margin-top: 12px;
+      }
+
+      @media (max-width: 900px) {
+        .layout {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand"><span class="light">Interview</span> <span class="strong">Coach</span></div>
+        <div class="status-pill" id="statusPill">Ready</div>
+      </header>
+
+      <main class="layout">
+        <section class="panel form-panel" id="setup">
+          <div class="panel-header">
+            <h2>Candidate profile</h2>
+            <span class="chip">Live</span>
+          </div>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="role">Target role</label>
+              <input id="role" type="text" value="Senior Product Manager" />
+            </div>
+
+            <div class="form-group">
+              <label for="company">Target company</label>
+              <input id="company" type="text" value="Northstar Labs" />
+            </div>
+
+            <div class="form-group">
+              <label for="interview_type">Interview type</label>
+              <select id="interview_type">
+                <option value="behavioral">Behavioral</option>
+                <option value="technical">Technical</option>
+                <option value="case">Case Study</option>
+                <option value="general">General</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="resume_text">Experience notes</label>
+              <textarea id="resume_text">Led roadmap planning for a B2B SaaS product, owned discovery with enterprise customers, and drove a 28% increase in retention through onboarding and lifecycle improvements.</textarea>
+            </div>
+
+            <div class="form-group">
+              <label for="job_description">Job description</label>
+              <textarea id="job_description">We are looking for a product leader who can navigate ambiguity, align cross-functional teams, and drive customer-centered execution.</textarea>
+            </div>
+
+            <div class="form-group">
+              <label for="length_target">Answer length</label>
+              <select id="length_target">
+                <option value="60-90 words">Concise</option>
+                <option value="120-180 words">Detailed</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="anthropic_key">Anthropic key</label>
+              <input id="anthropic_key" type="password" placeholder="Optional for demo mode" />
+            </div>
+
+            <div class="form-group">
+              <label for="deepgram_key">Deepgram key</label>
+              <input id="deepgram_key" type="password" placeholder="Optional for system audio" />
+            </div>
+          </div>
+
+          <div class="button-row">
+            <button class="btn btn-primary" onclick="startGreenroom('mic')">Start mic mode</button>
+            <button class="btn btn-secondary" onclick="startGreenroom('system-audio')">Start system audio</button>
+          </div>
+
+          <div class="small-note">No API key? The app still runs in local mock-coach mode using your profile and the detected question.</div>
+        </section>
+
+        <section class="panel session-panel" id="greenroom-active">
+          <div class="panel-header">
+            <h2>AI interview session</h2>
+            <span class="chip" id="sessionMode">Listening</span>
+          </div>
+
+          <div class="session-summary">
+            <div class="stat">
+              <small>Role fit</small>
+              <strong id="roleFit">Strong</strong>
+            </div>
+            <div class="stat">
+              <small>Questions</small>
+              <strong id="questionCount">0</strong>
+            </div>
+            <div class="stat">
+              <small>Mode</small>
+              <strong id="modeLabel">Mic</strong>
+            </div>
+          </div>
+
+          <div class="controls">
+            <button class="btn btn-secondary" onclick="window.greenroom?.forceCapture()">Force capture</button>
+            <button class="btn btn-danger" onclick="stopGreenroom()">Stop</button>
+          </div>
+
+          <div class="transcript-box">
+            <div class="label">Current question</div>
+            <div id="currentQuestion">Listening for the interviewer’s next question…</div>
+          </div>
+
+          <div id="greenroom-root"></div>
+
+          <div class="history-box">
+            <div class="label">Recent prompts</div>
+            <ul id="historyList"></ul>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script type="module">
+      import { Greenroom } from "./src/index.js";
+
+      const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognitionAPI) {
+        document.getElementById("setup").insertAdjacentHTML(
+          "afterend",
+          `<div class="floating-note" style="color:#fda4af; background: rgba(127,29,29,0.22); border: 1px solid rgba(251,113,133,0.2); border-radius: 12px; padding: 10px 12px;">Microphone mode works best on Chrome or Edge with Web Speech support.</div>`
+        );
+      }
+
+      let greenroom = null;
+      const statusPill = document.getElementById("statusPill");
+      const currentQuestion = document.getElementById("currentQuestion");
+      const historyList = document.getElementById("historyList");
+      const questionCount = document.getElementById("questionCount");
+      const modeLabel = document.getElementById("modeLabel");
+      const sessionMode = document.getElementById("sessionMode");
+
+      function setStatus(label, tone = "neutral") {
+        statusPill.textContent = label;
+        const map = {
+          neutral: "rgba(139, 92, 246, 0.12)",
+          good: "rgba(52, 211, 153, 0.12)",
+          warn: "rgba(251, 191, 36, 0.12)",
+          bad: "rgba(251, 113, 133, 0.12)"
+        };
+        statusPill.style.background = map[tone] || map.neutral;
+      }
+
+      function renderHistory() {
+        const items = greenroom?.getHistory?.() || [];
+        const visible = items.slice(-4).reverse();
+        questionCount.textContent = String(items.length);
+
+        if (!visible.length) {
+          historyList.innerHTML = "<li><div class='history-q'>No prompts yet</div><div class='history-a'>Your AI coach suggestions will appear here once the first question is detected.</div></li>";
+          return;
+        }
+
+        historyList.innerHTML = visible.map((entry) => {
+          const bullets = Array.isArray(entry?.suggestion?.bullets) ? entry.suggestion.bullets.slice(0, 2).join(" • ") : "Answer ready";
+          const snippet = (entry?.suggestion?.full_answer || "").slice(0, 120);
+          return `
+            <li>
+              <div class="history-q">${entry?.question || "Interview question"}</div>
+              <div class="history-a">${bullets}${snippet ? ` • ${snippet}` : ""}</div>
+            </li>
+          `;
+        }).join("");
+      }
+
+      window.startGreenroom = async function(mode) {
+        const profile = {
+          role: document.getElementById("role").value,
+          company: document.getElementById("company").value,
+          interview_type: document.getElementById("interview_type").value,
+          resume_text: document.getElementById("resume_text").value,
+          job_description: document.getElementById("job_description").value,
+          length_target: document.getElementById("length_target").value,
+          anthropicApiKey: document.getElementById("anthropic_key").value.trim(),
+          deepgramApiKey: document.getElementById("deepgram_key").value.trim(),
+        };
+
+        if (!profile.role || !profile.resume_text) {
+          alert("Please fill in the role and experience notes before starting.");
+          return;
+        }
+
+        try {
+          greenroom = new Greenroom(profile, {
+            onSuggestion: () => renderHistory(),
+            onStatusChange: (status) => {
+              if (status?.question) currentQuestion.textContent = status.question;
+              if (status?.state === "LISTENING") {
+                setStatus("Listening", "good");
+                sessionMode.textContent = "Listening";
+                currentQuestion.textContent = "Listening for the interviewer’s next question…";
+              }
+              if (status?.state === "SUGGESTING") {
+                setStatus("Drafting", "warn");
+                sessionMode.textContent = "Drafting";
+              }
+              if (status?.state === "STOPPED") {
+                setStatus("Stopped", "neutral");
+                sessionMode.textContent = "Stopped";
+              }
+            },
+            onError: (err) => {
+              setStatus("Needs attention", "bad");
+              console.error(err);
+            }
+          });
+
+          window.greenroom = greenroom;
+          modeLabel.textContent = mode === "system-audio" ? "System audio" : "Mic";
+          sessionMode.textContent = mode === "system-audio" ? "System audio" : "Listening";
+          setStatus(mode === "system-audio" ? "System audio" : "Listening", "good");
+
+          await greenroom.start(mode);
+          document.getElementById("setup").style.display = "none";
+          document.getElementById("greenroom-active").style.display = "block";
+          renderHistory();
+        } catch (err) {
+          alert("Failed to start: " + (err?.message || err));
+          setStatus("Issue", "bad");
+        }
+      };
+
+      window.stopGreenroom = function() {
+        greenroom?.stop();
+        greenroom = null;
+        window.greenroom = null;
+        document.getElementById("setup").style.display = "block";
+        document.getElementById("greenroom-active").style.display = "none";
+        setStatus("Ready", "neutral");
+        currentQuestion.textContent = "Listening for the interviewer’s next question…";
+        historyList.innerHTML = "";
+      };
+
+      renderHistory();
+      setStatus("Ready", "neutral");
+    </script>
+  </body>
+</html>

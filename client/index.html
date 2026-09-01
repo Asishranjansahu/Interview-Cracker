@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Greenroom</title>
+    <link rel="stylesheet" href="./src/styles/main.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand-wrap">
+          <span class="brand-title">Greenroom</span>
+          <span class="brand-subtitle">AI interview co-pilot</span>
+        </div>
+        <div id="statusPill" class="status-pill">Ready</div>
+      </header>
+
+      <main class="layout">
+        <section id="setupPanel" class="panel"></section>
+        <section id="sessionPanel" class="panel session-panel">
+          <div class="panel-header">
+            <h2>Live interview session</h2>
+            <span id="modeBadge" class="chip">Ready</span>
+          </div>
+
+          <div class="session-summary">
+            <div class="stat">
+              <small>Questions</small>
+              <strong id="questionCount">0</strong>
+            </div>
+            <div class="stat">
+              <small>Mode</small>
+              <strong id="modeLabel">Mic</strong>
+            </div>
+            <div class="stat">
+              <small>Role</small>
+              <strong id="roleLabel">N/A</strong>
+            </div>
+          </div>
+
+          <div class="controls">
+            <button id="captureBtn" class="btn btn-secondary">Force capture</button>
+            <button id="stopBtn" class="btn btn-danger">Stop</button>
+          </div>
+
+          <div class="transcript-box">
+            <div class="label">Current question</div>
+            <div id="currentQuestion">Listening for the interviewer’s next question…</div>
+          </div>
+
+          <div id="cueCard"></div>
+          <div id="historyPanel"></div>
+        </section>
+      </main>
+    </div>
+
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>
