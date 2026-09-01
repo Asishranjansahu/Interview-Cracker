@@ -351,22 +351,27 @@ export function useSpeechEngine({
           }
           if (event.error === 'not-allowed') {
             setPermissionStatus('denied');
-            setEngineError('Microphone permission blocked. Please click the camera/mic icon in the browser address bar to allow.');
+            setIsListening(false);
           } else if (event.error === 'network') {
-            setEngineError('Speech recognition network glitch. Auto-reconnecting...');
+            console.info('[useSpeechEngine] Network glitch in speech recognition.');
           } else if (event.error !== 'aborted') {
             setEngineError(`Speech recognition: ${event.error}`);
           }
         };
 
+        let restartTimeout = null;
         recognition.onend = () => {
-          if (!isManuallyStopped.current && isEnabled) {
-            // Restart smoothly
-            try {
-              recognition.start();
-            } catch {
-              // Ignore if already started
-            }
+          if (!isManuallyStopped.current && isEnabled && permissionStatus !== 'denied') {
+            // Restart smoothly after brief delay to avoid rapid loops
+            restartTimeout = setTimeout(() => {
+              try {
+                if (!isManuallyStopped.current && isEnabled) {
+                  recognition.start();
+                }
+              } catch {
+                // Ignore if already started
+              }
+            }, 300);
           } else {
             setIsListening(false);
           }

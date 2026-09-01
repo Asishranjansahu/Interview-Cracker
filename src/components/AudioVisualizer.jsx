@@ -20,6 +20,8 @@ export function AudioVisualizer({ audioStream, isActive, volume = 0 }) {
 
     try {
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+
       const ctx = new AudioCtx();
       audioContextRef.current = ctx;
 
@@ -37,6 +39,7 @@ export function AudioVisualizer({ audioStream, isActive, volume = 0 }) {
       const canvas = canvasRef.current;
       if (!canvas) return;
       const canvasCtx = canvas.getContext('2d');
+      if (!canvasCtx) return;
 
       const draw = () => {
         animationFrameRef.current = requestAnimationFrame(draw);
@@ -50,14 +53,14 @@ export function AudioVisualizer({ audioStream, isActive, volume = 0 }) {
         canvasCtx.clearRect(0, 0, width, height);
 
         const barCount = 18;
-        const barWidth = (width / barCount) - 3;
+        const barWidth = width / barCount - 3;
         let x = 0;
 
         for (let i = 0; i < barCount; i++) {
           const dataIndex = Math.floor((i / barCount) * (bufferLength / 2));
           const val = dataArray[dataIndex] || 0;
           const percent = val / 255;
-          const barHeight = Math.max(4, percent * height * 0.95);
+          const barHeight = Math.max(3, percent * height * 0.95);
 
           // Dynamic gradient based on amplitude
           const gradient = canvasCtx.createLinearGradient(0, height, 0, height - barHeight);
@@ -71,7 +74,15 @@ export function AudioVisualizer({ audioStream, isActive, volume = 0 }) {
 
           canvasCtx.fillStyle = gradient;
           canvasCtx.beginPath();
-          canvasCtx.roundRect(x, height - barHeight, barWidth, barHeight, [2, 2, 0, 0]);
+          if (typeof canvasCtx.roundRect === 'function') {
+            try {
+              canvasCtx.roundRect(x, height - barHeight, barWidth, barHeight, [2, 2, 0, 0]);
+            } catch {
+              canvasCtx.rect(x, height - barHeight, barWidth, barHeight);
+            }
+          } else {
+            canvasCtx.rect(x, height - barHeight, barWidth, barHeight);
+          }
           canvasCtx.fill();
 
           x += barWidth + 3;
@@ -100,7 +111,7 @@ export function AudioVisualizer({ audioStream, isActive, volume = 0 }) {
   if (!isActive) {
     return (
       <div className="flex h-10 items-center justify-center rounded-xl bg-slate-900/60 px-3 text-xs text-slate-400">
-        <span>Microphone inactive</span>
+        <span>Mic Inactive</span>
       </div>
     );
   }
