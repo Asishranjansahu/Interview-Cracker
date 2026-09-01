@@ -30,9 +30,11 @@ function setStatus(label, tone = 'neutral') {
   statusPill.style.background = map[tone] || map.neutral;
 }
 
-function toggleSession(show) {
+function toggleSession(show, stealthMode = false) {
   document.getElementById('setupPanel').style.display = show ? 'none' : 'block';
   document.getElementById('sessionPanel').style.display = show ? 'block' : 'none';
+  document.body.classList.toggle('stealth-mode', !!show && stealthMode);
+  document.getElementById('sessionPanel').classList.toggle('stealth-mode', !!show && stealthMode);
 }
 
 function updateQuestionCount() {
@@ -48,7 +50,7 @@ async function handleStart(mode) {
   modeBadge.textContent = mode === 'practice' ? 'Practice' : 'Live';
   document.getElementById('roleLabel').textContent = currentProfile.role || 'N/A';
 
-  toggleSession(true);
+  toggleSession(true, !!values.stealthMode);
   setStatus(mode === 'practice' ? 'Practice' : 'Listening', 'good');
 
   if (mode === 'live') {
@@ -115,7 +117,8 @@ function startLiveCapture() {
 
 function stopSession() {
   capture?.stop();
-  toggleSession(false);
+  toggleSession(false, false);
+  document.body.classList.remove('stealth-mode');
   setStatus('Ready', 'neutral');
   document.getElementById('currentQuestion').textContent = 'Listening for the interviewer’s next question…';
   document.getElementById('questionCount').textContent = '0';

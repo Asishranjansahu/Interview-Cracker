@@ -28,9 +28,19 @@ body {
   padding: 32px;
 }
 
+body.stealth-mode {
+  background: transparent;
+  padding: 0;
+}
+
 .app-shell {
   width: min(1200px, 100%);
   margin: 0 auto;
+}
+
+body.stealth-mode .app-shell {
+  width: min(360px, 100vw);
+  margin: 0;
 }
 
 .topbar {
@@ -86,6 +96,35 @@ body {
 }
 
 .session-panel { display: none; }
+
+body.stealth-mode .session-panel {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  width: min(360px, calc(100vw - 24px));
+  display: block;
+  padding: 14px;
+  background: rgba(15, 23, 42, 0.35);
+  border: 1px solid rgba(148, 163, 184, 0.08);
+  box-shadow: 0 18px 30px rgba(2, 6, 23, 0.32);
+  backdrop-filter: blur(4px);
+}
+
+body.stealth-mode .session-panel .session-summary,
+body.stealth-mode .session-panel .controls,
+body.stealth-mode .session-panel .history-box,
+body.stealth-mode .session-panel .transcript-box {
+  display: none;
+}
+
+body.stealth-mode .session-panel #greenroom-root,
+body.stealth-mode .session-panel .cue-card {
+  min-height: 120px;
+}
+
+body.stealth-mode .session-panel .panel-header {
+  margin-bottom: 10px;
+}
 
 .panel-header {
   display: flex;
@@ -236,6 +275,21 @@ textarea {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   margin-bottom: 8px;
+}
+
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text);
+  font-size: 0.8rem;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.checkbox-row input {
+  width: auto;
+  accent-color: var(--accent);
 }
 
 #currentQuestion {

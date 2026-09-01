@@ -49,6 +49,12 @@ export class SetupPanel {
           </select>
         </div>
       </div>
+      <div class="form-group">
+        <label class="checkbox-row">
+          <input id="stealthMode" type="checkbox" />
+          <span>Stealth mode for screen share</span>
+        </label>
+      </div>
       <div class="button-row">
         <button id="liveModeBtn" class="btn btn-primary">Start live mode</button>
         <button id="practiceModeBtn" class="btn btn-secondary">Start practice mode</button>
@@ -69,6 +75,7 @@ export class SetupPanel {
       job_description: document.getElementById('job_description').value,
       company_culture: document.getElementById('company_culture').value,
       length_target: document.getElementById('length_target').value,
+      stealthMode: document.getElementById('stealthMode')?.checked || false,
     };
   }
 }
