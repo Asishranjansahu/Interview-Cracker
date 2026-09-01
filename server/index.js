@@ -1,4 +1,3 @@
-import 'dotenv/config';
 import express from 'express';
 import suggestRoute from './routes/suggest.js';
 

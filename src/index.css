@@ -3,59 +3,62 @@
 @tailwind utilities;
 
 :root {
-  --surface: #ffffff;
-  --muted: #6b7280;
-  --text: #0f1724;
-  --brand: #34c07a;
-  --brand-dark: #2fa56a;
+  font-family: Inter, 'Segoe UI', sans-serif;
+  color: #edf3f8;
+  background: #14171f;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.5;
+  font-weight: 400;
 }
 
 html, body, #root {
   margin: 0;
   min-height: 100%;
   min-height: 100vh;
-  background: #f6f7f5;
-  color: var(--text);
-  font-family: Inter, 'Segoe UI', sans-serif;
+  background: #14171f;
 }
 
-* { box-sizing: border-box; }
+body {
+  min-height: 100vh;
+}
 
-button, input, textarea, select { font: inherit; }
+* {
+  box-sizing: border-box;
+}
 
-/* Scrollbar subtle */
-::-webkit-scrollbar { width: 10px; height: 10px; }
-::-webkit-scrollbar-thumb { background: rgba(16,24,32,0.06); border-radius: 999px; }
+button, input, textarea, select {
+  font: inherit;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.3);
+  border-radius: 999px;
+}
 
 @layer base {
-  body { @apply bg-[#f6f7f5] text-slate-900; }
+  body {
+    @apply bg-[#14171F] text-slate-100;
+  }
 }
 
 @layer components {
-  .glass-panel { @apply bg-white border border-gray-100 rounded-2xl shadow-soft p-4; }
+  .glass-panel {
+    @apply border border-white/10 bg-[#1B212C]/90 backdrop-blur-sm;
+  }
 
   .panel-btn {
-    @apply inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:shadow;
+    @apply inline-flex items-center justify-center rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm font-medium text-slate-100 transition hover:bg-white/10;
   }
 
   .primary-btn {
-    background: linear-gradient(180deg, var(--brand), var(--brand-dark));
-    color: #072018; @apply rounded-lg px-4 py-2 text-sm font-semibold;
+    @apply inline-flex items-center justify-center rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-brand-400;
   }
-
-  .brand-badge {
-    background: linear-gradient(180deg, var(--brand), var(--brand-dark));
-    color: #072018; @apply rounded-full px-3 py-1 text-xs font-bold;
-  }
-}
-
-/* Utility to tone down previous dark-specific classes used in markup */
-.bg-slate-900 { background: #0f1724 !important; color: white !important; }
-.bg-slate-100 { background: #fff !important; }
-
-.shadow-soft { box-shadow: 0 10px 24px rgba(16,24,32,0.06); }
-
-/* Small responsive adjustments */
-@media (max-width: 900px) {
-  .md\:p-6 { padding: 1rem; }
 }

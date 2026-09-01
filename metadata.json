@@ -1,0 +1,6 @@
+{
+  "name": "Interview Cracker",
+  "description": "AI-powered interview co-pilot and preparation dashboard with live and practice modes, cue cards, and session history.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
